@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function Header() {
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-4 md:px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-6 md:px-8">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="md:hidden" />
         <Link href="/chat" className="flex items-center gap-2 text-lg font-semibold md:text-base">
