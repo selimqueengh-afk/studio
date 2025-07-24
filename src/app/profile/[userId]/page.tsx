@@ -2,13 +2,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, UserPlus, UserCheck, Clock, UserX } from 'lucide-react';
+import { Loader2, UserPlus, UserCheck, Clock, UserX, ArrowLeft } from 'lucide-react';
 import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend } from '@/lib/friends';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +24,7 @@ type FriendshipStatus = 'none' | 'pending' | 'friends' | 'received_request';
 export default function ProfilePage() {
   const { user: currentUser } = useAuth();
   const params = useParams();
+  const router = useRouter();
   const userId = params.userId as string;
   const { toast } = useToast();
 
@@ -188,15 +189,20 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 md:p-8">
-      <div className="w-full max-w-sm bg-card rounded-2xl shadow-lg p-8 flex flex-col items-center">
-        <Avatar className="w-32 h-32 mb-6 ring-4 ring-primary/20">
-          <AvatarImage src={profile.photoURL} alt={profile.displayName} />
-          <AvatarFallback className="text-4xl">{getInitials(profile.displayName)}</AvatarFallback>
-        </Avatar>
-        <h1 className="text-3xl font-bold text-foreground">{profile.displayName}</h1>
-        <p className="text-muted-foreground mt-1">{profile.email}</p>
-        <div className="mt-8">
-          {renderFriendshipButton()}
+      <div className="w-full max-w-sm relative">
+         <Button variant="ghost" size="icon" className="absolute top-4 left-4" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+         </Button>
+        <div className="bg-card rounded-2xl shadow-lg p-8 pt-16 flex flex-col items-center">
+            <Avatar className="w-32 h-32 mb-6 ring-4 ring-primary/20">
+                <AvatarImage src={profile.photoURL} alt={profile.displayName} />
+                <AvatarFallback className="text-4xl">{getInitials(profile.displayName)}</AvatarFallback>
+            </Avatar>
+            <h1 className="text-3xl font-bold text-foreground">{profile.displayName}</h1>
+            <p className="text-muted-foreground mt-1">{profile.email}</p>
+            <div className="mt-8">
+                {renderFriendshipButton()}
+            </div>
         </div>
       </div>
     </div>

@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, UserPlus, Search } from 'lucide-react';
+import { Loader2, UserPlus, Search, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface User {
@@ -71,7 +71,15 @@ export default function FindFriendsPage() {
 
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6">
-            <h1 className="text-3xl font-bold mb-6">Arkadaş Bul</h1>
+             <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold">Arkadaş Bul</h1>
+                 <Button asChild variant="outline">
+                    <Link href="/chat">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Sohbete Dön
+                    </Link>
+                </Button>
+            </div>
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
