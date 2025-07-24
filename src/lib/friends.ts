@@ -16,7 +16,6 @@ export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   if (inverseRequestSnap.exists()) {
     // If an inverse request exists, it means the other person already sent you a request.
     // Instead of creating a new request, we should accept their existing request.
-    // The user accepting is `fromUid`, the user who sent the request is `toUid`.
     await acceptFriendRequest(toUid, fromUid);
     return;
   }
@@ -25,7 +24,7 @@ export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   const requestSnap = await getDoc(requestDocRef);
   if(requestSnap.exists()) {
     // Request already sent
-    return;
+    throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
 
   await setDoc(requestDocRef, {
@@ -40,22 +39,20 @@ export const sendFriendRequest = async (fromUid: string, toUid:string) => {
 // fromUid: the user who SENT the request
 // toUid: the user who is ACCEPTING the request (the current user)
 export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
-  const batch = writeBatch(db);
   const requestId = `${fromUid}_${toUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
 
-  // Check if the request document exists before proceeding
   const requestSnap = await getDoc(requestDocRef);
   if (!requestSnap.exists()) {
     throw new Error("Arkadaşlık isteği bulunamadı veya zaten işlendi.");
   }
 
+  const batch = writeBatch(db);
+
   // Add each user to the other's friends subcollection
-  // Add the sender (fromUid) to the acceptor's (toUid) friend list
   const acceptorFriendRef = doc(db, 'users', toUid, 'friends', fromUid);
   batch.set(acceptorFriendRef, { since: serverTimestamp() });
 
-  // Add the acceptor (toUid) to the sender's (fromUid) friend list
   const senderFriendRef = doc(db, 'users', fromUid, 'friends', toUid);
   batch.set(senderFriendRef, { since: serverTimestamp() });
 
