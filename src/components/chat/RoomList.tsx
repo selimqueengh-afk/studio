@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { collection, onSnapshot, doc, getDoc, setDoc, serverTimestamp, query } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +24,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Separator } from '../ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ScrollArea } from '../ui/scroll-area';
+import { getInitials } from '@/lib/utils';
+import { createOrGetRoom } from '@/lib/rooms';
 
 interface Friend {
     uid: string;
@@ -73,46 +75,8 @@ export default function RoomList() {
     if (!user) return;
     
     setOpenMobile(false);
-
-    const currentUserUid = user.uid;
-    const selectedUserUid = selectedFriend.uid;
-
-    const chatId = currentUserUid > selectedUserUid
-        ? `${currentUserUid}_${selectedUserUid}`
-        : `${selectedUserUid}_${currentUserUid}`;
-    
-    const chatDocRef = doc(db, 'rooms', chatId);
-    const chatDoc = await getDoc(chatDocRef);
-
-    if (!chatDoc.exists()) {
-        await setDoc(chatDocRef, {
-            name: `DM with ${selectedFriend.displayName}`,
-            createdAt: serverTimestamp(),
-            isDirectMessage: true,
-            participants: {
-              [currentUserUid]: true,
-              [selectedUserUid]: true,
-            },
-            participantNames: {
-                [currentUserUid]: user.displayName,
-                [selectedUserUid]: selectedFriend.displayName
-            },
-            participantPhotos: {
-                [currentUserUid]: user.photoURL,
-                [selectedUserUid]: selectedFriend.photoURL
-            }
-        });
-    }
-    router.push(`/chat/${chatId}`);
-  };
-  
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('');
+    const roomId = await createOrGetRoom(user, selectedFriend);
+    router.push(`/chat/${roomId}`);
   };
   
   return (
@@ -158,4 +122,3 @@ export default function RoomList() {
     </div>
   );
 }
-

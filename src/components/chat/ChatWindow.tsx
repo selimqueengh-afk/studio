@@ -25,14 +25,21 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import ReelCard from '../reels/ReelCard';
 
 interface MessageData {
   id: string;
-  text: string;
+  text?: string;
   createdAt: any;
   userId: string;
   userName: string;
   userPhotoURL: string | null;
+  type?: 'text' | 'reel';
+  reel?: {
+    id: number;
+    thumbnailUrl: string;
+    author: string;
+  }
 }
 
 interface RoomData {

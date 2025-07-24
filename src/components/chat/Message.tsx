@@ -1,16 +1,25 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import ReelCard from '../reels/ReelCard';
 
 interface MessageProps {
   message: {
-    text: string;
+    id: string;
+    text?: string;
     createdAt: any;
     userId: string;
     userName: string;
     userPhotoURL: string | null;
+    type?: 'text' | 'reel';
+    reel?: {
+      id: number;
+      thumbnailUrl: string;
+      author: string;
+    }
   };
   isCurrentUser: boolean;
 }
@@ -49,16 +58,21 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
           )}
           <span className="text-xs text-muted-foreground">{formattedTime}</span>
         </div>
-        <div
-          className={cn(
-            'rounded-lg p-3 max-w-xs md:max-w-md lg:max-w-lg break-words',
-            isCurrentUser
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-card border'
-          )}
-        >
-          <p>{message.text}</p>
-        </div>
+        
+        {message.type === 'reel' && message.reel ? (
+             <ReelCard reel={message.reel} />
+        ) : (
+            <div
+                className={cn(
+                    'rounded-lg p-3 max-w-xs md:max-w-md lg:max-w-lg break-words',
+                    isCurrentUser
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card border'
+                )}
+                >
+                <p>{message.text}</p>
+            </div>
+        )}
       </div>
     </div>
   );

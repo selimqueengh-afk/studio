@@ -7,6 +7,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function ChatLayout({
   children,
@@ -29,6 +30,7 @@ export default function ChatLayout({
           </Sidebar>
           <main className="flex-1 overflow-x-hidden bg-secondary/30">{children}</main>
         </div>
+        <BottomNav />
       </div>
     </SidebarProvider>
   );
