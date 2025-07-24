@@ -1,5 +1,4 @@
 import { MessageSquare } from 'lucide-react';
-import UserNav from '@/components/auth/UserNav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 
@@ -13,7 +12,6 @@ export default function Header() {
           <span className="font-bold">Sohbet Odası</span>
         </Link>
       </div>
-      <UserNav />
     </header>
   );
 }
