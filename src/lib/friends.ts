@@ -8,7 +8,18 @@ import {
   serverTimestamp,
   writeBatch,
   collection,
+  getDocs,
 } from 'firebase/firestore';
+
+// This function will run on the server and is not directly exposed to the client.
+// It is used by the FindFriendsPage to get all users.
+export const getAllUsers = async () => {
+    const usersCollection = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCollection);
+    const userList = userSnapshot.docs.map(doc => doc.data());
+    return userList;
+}
+
 
 // Function to send a friend request using Firestore
 export const sendFriendRequest = async (fromUid: string, toUid: string) => {

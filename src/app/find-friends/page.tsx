@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, where } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
+import { collection, query, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -23,58 +23,64 @@ export default function FindFriendsPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [friendUids, setFriendUids] = useState<string[]>([]);
-    const [requestUids, setRequestUids] = useState<string[]>([]);
+    const [friendUids, setFriendUids] = useState<Set<string>>(new Set());
+    const [requestUids, setRequestUids] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (!currentUser) return;
 
+        const fetchInitialData = async () => {
+            setLoading(true);
+            try {
+                // Fetch all users from a server component/function if possible,
+                // for now, we'll fetch directly, assuming rules allow it.
+                const usersCol = collection(db, 'users');
+                const userSnapshot = await getDocs(usersCol);
+                const allUsers = userSnapshot.docs.map(doc => doc.data() as User);
+                setUsers(allUsers.filter(u => u.uid !== currentUser.uid));
+            } catch (error) {
+                console.error("Error fetching users: ", error);
+            }
+        };
+
+        fetchInitialData();
+
+        // Listen for friends
         const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
         const unsubscribeFriends = onSnapshot(friendsQuery, (snapshot) => {
-            setFriendUids(snapshot.docs.map(doc => doc.id));
+            setFriendUids(new Set(snapshot.docs.map(doc => doc.id)));
         });
 
+        // Listen for friend requests (sent and received)
         const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', currentUser.uid));
         const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', currentUser.uid));
-        
-        let currentRequestUids: string[] = [];
 
         const unsubscribeSent = onSnapshot(sentRequestsQuery, (snapshot) => {
             const sentUids = snapshot.docs.map(doc => doc.data().to);
-            currentRequestUids = [...new Set([...currentRequestUids, ...sentUids])];
-            setRequestUids(currentRequestUids);
+            setRequestUids(prev => new Set([...Array.from(prev), ...sentUids]));
         });
 
         const unsubscribeReceived = onSnapshot(receivedRequestsQuery, (snapshot) => {
-             const receivedUids = snapshot.docs.map(doc => doc.data().from);
-             currentRequestUids = [...new Set([...currentRequestUids, ...receivedUids])];
-             setRequestUids(currentRequestUids);
+            const receivedUids = snapshot.docs.map(doc => doc.data().from);
+            setRequestUids(prev => new Set([...Array.from(prev), ...receivedUids]));
         });
         
-        // Fetch all users
-        const usersCol = collection(db, 'users');
-        const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
-            const usersData = snapshot.docs.map(doc => doc.data() as User);
-            setUsers(usersData.filter(u => u.uid !== currentUser.uid)); // Filter out current user
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching users: ", error);
-            setLoading(false);
-        });
+        setLoading(false);
 
         return () => {
             unsubscribeFriends();
             unsubscribeSent();
             unsubscribeReceived();
-            unsubscribeUsers();
-        }
+        };
     }, [currentUser]);
 
-    const filteredUsers = users.filter(user => 
-        user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !friendUids.includes(user.uid) &&
-        !requestUids.includes(user.uid)
-    );
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => 
+            user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            !friendUids.has(user.uid) &&
+            !requestUids.has(user.uid)
+        );
+    }, [users, searchTerm, friendUids, requestUids]);
 
     const getInitials = (name: string | null | undefined) => {
         if (!name) return '??';
@@ -102,7 +108,7 @@ export default function FindFriendsPage() {
                 />
             </div>
 
-            {loading ? (
+            {loading && users.length === 0 ? (
                 <div className="flex justify-center mt-8">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
