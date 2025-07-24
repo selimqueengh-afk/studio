@@ -147,7 +147,7 @@ export default function ReelsPage() {
            <img
             src={reel.thumbnailUrl}
             alt={reel.description || `Reel from ${reel.author}`}
-            className={cn("object-cover w-full h-full transition-opacity duration-500", isPlaying ? 'opacity-0' : 'opacity-100')}
+            className={cn("object-cover w-full h-full transition-opacity duration-500 pointer-events-none", isPlaying ? 'opacity-0' : 'opacity-100')}
             data-ai-hint="youtube short"
           />
 
@@ -200,3 +200,5 @@ export default function ReelsPage() {
     </div>
   );
 }
+
+    
