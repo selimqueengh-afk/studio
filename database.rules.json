@@ -1,31 +1,58 @@
+rules_version = '2';
 
-{
-  "rules": {
-    // friendRequests can be read if the user is the sender or receiver.
-    // They can be written if the user is the sender.
-    "friendRequests": {
-      "$requestId": {
-        ".read": "auth != null && (data.child('from').val() === auth.uid || data.child('to').val() === auth.uid)",
-        ".write": "auth != null && newData.child('from').val() === auth.uid && !data.exists()",
-        ".validate": "newData.hasChildren(['from', 'to', 'createdAt'])"
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Rules for users collection
+    match /users/{userId} {
+      // Any signed-in user can read any user's public profile
+      allow read: if isSignedIn();
+      // Only the user themselves can write to their own document
+      allow write: if isUser(userId);
+
+      // Rules for friends subcollection
+      match /friends/{friendId} {
+        // A user can read their own friends list
+        allow read: if isUser(userId);
+        // A user can be added to the friends list only by a function that handles a friend request.
+        // This rule allows the acceptFriendRequest batch write to succeed.
+        // It checks if a corresponding friend request exists, which will be deleted in the same batch.
+        allow write: if isSignedIn() &&
+                     (isUser(userId) || isUser(friendId)) &&
+                     (exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)) ||
+                      exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)));
+        // A user can remove a friend
+        allow delete: if isSignedIn() && (isUser(userId) || isUser(friendId));
       }
-    },
-    // The friends list can be read by the owner of the list.
-    "friends": {
-      "$userId": {
-        ".read": "auth != null && auth.uid === $userId",
-        // A user can be added to the friends list only if a corresponding friend request exists which is now being deleted.
-        "$friendId": {
-           ".write": "auth != null && (auth.uid === $userId || auth.uid === $friendId) && root.child('friendRequests').child(auth.uid + '_' + (auth.uid === $userId ? $friendId : $userId)).val() === null || root.child('friendRequests').child((auth.uid === $userId ? $friendId : $userId) + '_' + auth.uid).val() === null"
-        }
+    }
+
+    // Rules for friendRequests collection
+    match /friendRequests/{requestId} {
+      // A request can be read by the sender or the receiver
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      // A request can be created only by the sender
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from;
+      // A request can be deleted by the sender (to cancel) or the receiver (to reject or accept)
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+    }
+
+    // Rules for rooms and messages
+    match /rooms/{roomId} {
+      allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
+
+      match /messages/{messageId} {
+        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+        allow update, delete: if false; // Messages are immutable
       }
-    },
-     // Users node holds public data readable by all authenticated users
-    "users": {
-        "$uid": {
-            ".read": "auth != null",
-            ".write": "auth != null && auth.uid === $uid"
-        }
     }
   }
 }
