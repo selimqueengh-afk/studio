@@ -37,14 +37,7 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
 export const rejectFriendRequest = async (fromUid: string, toUid: string) => {
   const requestId = `${fromUid}_${toUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
-  
-  const docSnap = await getDoc(requestDocRef);
-  if (docSnap.exists()) {
-    await deleteDoc(requestDocRef);
-  } else {
-    // This handles cases where the request might have been cancelled by the sender
-    console.log("Friend request document not found, it might have been cancelled.");
-  }
+  await deleteDoc(requestDocRef);
 };
 
 
