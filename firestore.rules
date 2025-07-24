@@ -1,10 +1,44 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    match /users/{userId} {
+      // A user can read another user's public profile
+      allow get: if request.auth != null;
+      // A user can only write to their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow listing users for the "find-friends" page
+      allow list: if request.auth != null;
+      
+      match /friends/{friendId} {
+        // A user can read their own friends list
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // A user can be added to the friends list only if a corresponding friend request is being accepted.
+        // This rule allows the batch write in acceptFriendRequest to succeed.
+        allow write: if request.auth != null && 
+                       (
+                         // Accepting a request sent TO me
+                         exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(request.auth.uid)) ||
+                         // My own write to my friends list when I accept a request
+                         (request.auth.uid == userId && exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)))
+                       );
+         // Allow deleting a friend (removing from the subcollection)
+         allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == friendId);
+      }
+    }
+
+    match /friendRequests/{requestId} {
+      // A user can read a request if they are the sender or receiver
+      allow read: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      // A user can create a request if they are the sender
+      allow create: if request.auth != null && request.resource.data.from == request.auth.uid;
+      // A user can delete a request if they are the sender (canceling) or receiver (rejecting/accepting)
+      allow delete: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+
+    match /rooms/{roomId}/{document=**} {
+      allow read, write: if request.auth != null && (exists(/databases/$(database)/documents/rooms/$(roomId)) && resource.data.participants[request.auth.uid] == true);
     }
   }
 }
