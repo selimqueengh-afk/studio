@@ -17,6 +17,8 @@ export const sendFriendRequest = async (fromUid: string, toUid:string) => {
 // Function to accept a friend request
 export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const batch = writeBatch(db);
+  const requestId = `${fromUid}_${toUid}`;
+  const requestDocRef = doc(db, 'friendRequests', requestId);
 
   // Add each user to the other's friends subcollection
   const user1FriendRef = doc(db, 'users', fromUid, 'friends', toUid);
@@ -26,7 +28,6 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   batch.set(user2FriendRef, { since: serverTimestamp() });
 
   // Delete the friend request
-  const requestDocRef = doc(db, 'friendRequests', `${fromUid}_${toUid}`);
   batch.delete(requestDocRef);
 
   await batch.commit();

@@ -37,14 +37,14 @@ export default function FriendRequestBell() {
         const unsubscribe = onSnapshot(q, async (snapshot) => {
             const requestsPromises = snapshot.docs.map(async (requestDoc) => {
                 const requestData = requestDoc.data();
-                const userDoc = await getDoc(doc(db, 'users', requestData.from));
-                const userData = userDoc.data();
+                const userDocSnap = await getDoc(doc(db, 'users', requestData.from));
+                const userData = userDocSnap.data();
                 return {
                     id: requestDoc.id,
                     from: requestData.from,
                     fromName: userData?.displayName,
                     fromPhotoURL: userData?.photoURL
-                };
+                } as FriendRequest;
             });
             const newRequests = await Promise.all(requestsPromises);
             setRequests(newRequests);
