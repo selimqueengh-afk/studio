@@ -88,11 +88,25 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!currentUser || !userId) return;
 
-    const unsub = onSnapshot(doc(db, 'users', currentUser.uid), () => {
+    // Listen for changes in friend requests to update status in real-time
+    const sentReqUnsub = onSnapshot(doc(db, "friendRequests", `${currentUser.uid}_${userId}`), () => {
+        checkFriendshipStatus();
+    });
+    const receivedReqUnsub = onSnapshot(doc(db, "friendRequests", `${userId}_${currentUser.uid}`), () => {
+        checkFriendshipStatus();
+    });
+    // Listen for changes in friends subcollections
+    const userFriendsUnsub = onSnapshot(collection(db, `users/${currentUser.uid}/friends`), () => {
         checkFriendshipStatus();
     });
 
-    return () => unsub();
+    checkFriendshipStatus();
+
+    return () => {
+        sentReqUnsub();
+        receivedReqUnsub();
+        userFriendsUnsub();
+    };
   }, [currentUser, userId, checkFriendshipStatus]);
 
 
@@ -105,7 +119,7 @@ export default function ProfilePage() {
       toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'İstek gönderilemedi.' });
+      toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'İstek gönderilemedi.' });
     }
     setIsUpdating(false);
   };
@@ -119,7 +133,7 @@ export default function ProfilePage() {
        toast({ title: 'Başarılı', description: 'Arkadaşlık isteği kabul edildi.' });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'İstek kabul edilemedi.' });
+      toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'İstek kabul edilemedi.' });
     }
      setIsUpdating(false);
   };
@@ -133,7 +147,7 @@ export default function ProfilePage() {
        toast({ title: 'Başarılı', description: 'Arkadaşlık isteği reddedildi.' });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'İstek reddedilemedi.' });
+      toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'İstek reddedilemedi.' });
     }
     setIsUpdating(false);
   }
@@ -147,7 +161,7 @@ export default function ProfilePage() {
       toast({ title: 'Başarılı', description: 'Arkadaşlıktan çıkarıldı.' });
     } catch (error) {
       console.error(error);
-       toast({ variant: 'destructive', title: 'Hata', description: 'Arkadaşlıktan çıkarılamadı.' });
+       toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'Arkadaşlıktan çıkarılamadı.' });
     }
     setIsUpdating(false);
   }
