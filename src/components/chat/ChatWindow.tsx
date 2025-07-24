@@ -26,6 +26,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ReelCard from '../reels/ReelCard';
+import type { Reel } from '@/app/reels/page';
+
 
 interface MessageData {
   id: string;
@@ -35,11 +37,7 @@ interface MessageData {
   userName: string;
   userPhotoURL: string | null;
   type?: 'text' | 'reel';
-  reel?: {
-    id: number;
-    thumbnailUrl: string;
-    author: string;
-  }
+  reel?: Reel;
 }
 
 interface RoomData {

@@ -6,57 +6,75 @@ import Image from 'next/image';
 import { Loader2, PlayCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
+import { collection, query, orderBy, startAfter, limit, getDocs, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
-interface Reel {
-  id: number;
+export interface Reel {
+  id: string; // Firestore document ID
   videoUrl: string;
   thumbnailUrl: string;
   author: string;
+  description: string;
 }
 
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
   const [isShareSheetOpen, setShareSheetOpen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
-
-  const generateMockReels = useCallback((count: number): Reel[] => {
-    const newReels: Reel[] = [];
-    for (let i = 0; i < count; i++) {
-      const randomId = Math.floor(Math.random() * 1000000);
-      newReels.push({
-        id: randomId,
-        videoUrl: `https://placehold.co/1080x1920.png?text=Video+${randomId}`,
-        thumbnailUrl: `https://placehold.co/1080x1920.png?text=Reel+${randomId}`,
-        author: `@kullanici${randomId}`,
-      });
-    }
-    return newReels;
-  }, []);
+  const { toast } = useToast();
 
   const loadMoreReels = useCallback(async () => {
     if (loading || !hasMore) return;
     setLoading(true);
 
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setReels(prev => {
-        const newReels = generateMockReels(5);
-        const updatedReels = [...prev, ...newReels];
-        if (updatedReels.length >= 50) {
-            setHasMore(false);
-        }
-        return updatedReels;
-    });
+    try {
+      let q = query(
+        collection(db, 'reels'), 
+        orderBy('createdAt', 'desc'), 
+        limit(5)
+      );
+
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+      
+      const newReels = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+      })) as Reel[];
+      
+      setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      setReels(prev => [...prev, ...newReels]);
+
+    } catch (error) {
+        console.error("Error fetching reels: ", error);
+        toast({
+            variant: "destructive",
+            title: "Hata",
+            description: "Videolar yüklenirken bir sorun oluştu."
+        });
+        setHasMore(false);
+    }
+
 
     setLoading(false);
-  }, [loading, hasMore, generateMockReels]);
+  }, [loading, hasMore, lastDoc, toast]);
 
   useEffect(() => {
-    // Load initial reels
+    // Load initial reels only once
     loadMoreReels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -90,7 +108,7 @@ export default function ReelsPage() {
           <Image
             src={reel.thumbnailUrl}
             alt={`Reel from ${reel.author}`}
-            layout="fill"
+            fill
             objectFit="cover"
             priority={index < 2}
             data-ai-hint="video reel"
@@ -101,7 +119,7 @@ export default function ReelsPage() {
           </div>
            <div className="absolute bottom-16 left-4 text-white z-10">
                 <p className="font-bold">{reel.author}</p>
-                <p className="text-sm">Bu harika bir video! #eğlence</p>
+                <p className="text-sm">{reel.description}</p>
             </div>
             <div className="absolute bottom-16 right-4 flex flex-col gap-4 z-10">
                  <Button variant="ghost" size="icon" className="text-white h-12 w-12" onClick={() => handleShareClick(reel)}>
@@ -130,4 +148,3 @@ export default function ReelsPage() {
     </div>
   );
 }
-

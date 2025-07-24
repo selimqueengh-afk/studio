@@ -13,14 +13,8 @@ import { Loader2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getInitials } from '@/lib/utils';
 import { createOrGetRoom } from '@/lib/rooms';
+import type { Reel } from '@/app/reels/page';
 
-
-interface Reel {
-    id: number;
-    videoUrl: string;
-    thumbnailUrl: string;
-    author: string;
-}
 
 interface Friend {
     uid: string;
@@ -70,13 +64,18 @@ export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReel
         try {
             const roomId = await createOrGetRoom(user, friend);
             
+            // We pass the whole reel object to be stored in the message
+            const reelData = {
+                id: reel.id,
+                thumbnailUrl: reel.thumbnailUrl,
+                author: reel.author,
+                videoUrl: reel.videoUrl,
+                description: reel.description,
+            };
+            
             await addDoc(collection(db, 'rooms', roomId, 'messages'), {
                 type: 'reel',
-                reel: {
-                    id: reel.id,
-                    thumbnailUrl: reel.thumbnailUrl,
-                    author: reel.author,
-                },
+                reel: reelData,
                 createdAt: serverTimestamp(),
                 userId: user.uid,
                 userName: user.displayName,

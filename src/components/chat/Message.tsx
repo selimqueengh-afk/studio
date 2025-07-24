@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import ReelCard from '../reels/ReelCard';
+import type { Reel } from '@/app/reels/page';
 
 interface MessageProps {
   message: {
@@ -15,11 +16,7 @@ interface MessageProps {
     userName: string;
     userPhotoURL: string | null;
     type?: 'text' | 'reel';
-    reel?: {
-      id: number;
-      thumbnailUrl: string;
-      author: string;
-    }
+    reel?: Reel;
   };
   isCurrentUser: boolean;
 }

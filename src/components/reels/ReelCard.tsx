@@ -3,12 +3,7 @@
 
 import Image from "next/image";
 import { PlayCircle } from "lucide-react";
-
-interface Reel {
-    id: number;
-    thumbnailUrl: string;
-    author: string;
-}
+import type { Reel } from "@/app/reels/page";
 
 interface ReelCardProps {
     reel: Reel;
@@ -21,7 +16,7 @@ export default function ReelCard({ reel }: ReelCardProps) {
                 <Image 
                     src={reel.thumbnailUrl}
                     alt={`Reel from ${reel.author}`}
-                    layout="fill"
+                    fill
                     objectFit="cover"
                     data-ai-hint="video reel"
                 />
