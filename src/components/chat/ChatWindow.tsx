@@ -10,6 +10,7 @@ import {
   getDoc,
   deleteDoc,
   writeBatch,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -48,10 +49,16 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
 
   useEffect(() => {
     const fetchRoom = async () => {
+      setLoading(true);
       const roomDoc = await getDoc(doc(db, 'rooms', roomId));
       if (roomDoc.exists()) {
         setRoom(roomDoc.data() as RoomData);
       } else {
+        toast({
+          variant: 'destructive',
+          title: 'Hata',
+          description: 'Sohbet odası bulunamadı.',
+        });
         router.push('/chat');
       }
     };
@@ -69,12 +76,17 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
       setMessages(msgs);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching messages: ", error);
+      console.error("Mesajlar alınırken hata oluştu: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'Mesajlar yüklenemedi.',
+      });
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [roomId, router]);
+  }, [roomId, router, toast]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -88,25 +100,35 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   }, [messages]);
 
   const handleDeleteRoom = async () => {
-    if (!room || room.creatorId !== user?.uid) return;
+    if (!room || !user || room.creatorId !== user.uid) {
+        toast({
+            variant: 'destructive',
+            title: 'Yetkisiz',
+            description: 'Bu odayı silme yetkiniz yok.',
+        });
+        return;
+    }
+
+    if (!window.confirm('Bu odayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+        return;
+    }
+
     setIsDeleting(true);
     try {
-      // Delete all messages in the room
-      const messagesQuery = query(collection(db, 'rooms', roomId, 'messages'));
-      const messagesSnapshot = await getDoc(messagesQuery as any); // Firebase v9 issue with getDocs on query
+      const messagesCollection = collection(db, 'rooms', roomId, 'messages');
+      const messagesSnapshot = await getDocs(messagesCollection);
       const batch = writeBatch(db);
-      messagesSnapshot.docs.forEach((doc:any) => {
+      messagesSnapshot.docs.forEach((doc) => {
           batch.delete(doc.ref);
       });
       await batch.commit();
 
-      // Delete the room itself
       await deleteDoc(doc(db, 'rooms', roomId));
       
       toast({ title: 'Başarılı', description: 'Oda ve tüm mesajlar silindi.' });
       router.push('/chat');
     } catch (error) {
-      console.error("Error deleting room: ", error);
+      console.error("Oda silinirken hata oluştu: ", error);
       toast({
         variant: 'destructive',
         title: 'Hata',
