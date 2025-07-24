@@ -22,20 +22,15 @@ export default function ReelsPage() {
   const [isShareSheetOpen, setShareSheetOpen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
 
-  const generateMockReels = useCallback((count: number, currentReelCount: number): Reel[] => {
+  const generateMockReels = useCallback((count: number): Reel[] => {
     const newReels: Reel[] = [];
-    // Simulate running out of reels after 50 for demo purposes
-    if (currentReelCount >= 50) {
-        setHasMore(false);
-        return [];
-    }
     for (let i = 0; i < count; i++) {
-      const id = currentReelCount + i;
+      const randomId = Math.floor(Math.random() * 1000000);
       newReels.push({
-        id: id,
-        videoUrl: `https://placehold.co/1080x1920.png?text=Video+${id}`,
-        thumbnailUrl: `https://placehold.co/1080x1920.png?text=Reel+${id}`,
-        author: `@kullanici${id}`,
+        id: randomId,
+        videoUrl: `https://placehold.co/1080x1920.png?text=Video+${randomId}`,
+        thumbnailUrl: `https://placehold.co/1080x1920.png?text=Reel+${randomId}`,
+        author: `@kullanici${randomId}`,
       });
     }
     return newReels;
@@ -48,15 +43,23 @@ export default function ReelsPage() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const newReels = generateMockReels(5, reels.length);
-    setReels(prev => [...prev, ...newReels]);
+    setReels(prev => {
+        if (prev.length >= 50) {
+            setHasMore(false);
+            return prev;
+        }
+        const newReels = generateMockReels(5);
+        return [...prev, ...newReels];
+    });
 
     setLoading(false);
-  }, [loading, hasMore, generateMockReels, reels.length]);
+  }, [loading, hasMore, generateMockReels]);
 
   useEffect(() => {
     // Load initial reels
-    loadMoreReels();
+    if (reels.length === 0) {
+        loadMoreReels();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -129,3 +132,4 @@ export default function ReelsPage() {
     </div>
   );
 }
+
