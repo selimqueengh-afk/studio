@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
-import { rtdb, db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -33,22 +33,19 @@ export default function FriendRequestBell() {
     useEffect(() => {
         if (!user) return;
 
-        const requestsRef = ref(rtdb, 'friendRequests');
-        const q = query(requestsRef, orderByChild('to'), equalTo(user.uid));
+        const requestsQuery = query(
+            collection(db, 'friendRequests'),
+            where('to', '==', user.uid)
+        );
         
-        const unsubscribe = onValue(q, async (snapshot) => {
-            if (!snapshot.exists()) {
-                setRequests([]);
-                return;
-            }
-            const requestsData = snapshot.val();
-            const requestsPromises = Object.keys(requestsData).map(async (key) => {
-                const request = requestsData[key];
-                const userDocSnap = await getDoc(doc(db, 'users', request.from));
+        const unsubscribe = onSnapshot(requestsQuery, async (snapshot) => {
+            const requestsPromises = snapshot.docs.map(async (requestDoc) => {
+                const requestData = requestDoc.data();
+                const userDocSnap = await getDoc(doc(db, 'users', requestData.from));
                 const userData = userDocSnap.data();
                 return {
-                    id: key,
-                    from: request.from,
+                    id: requestDoc.id,
+                    from: requestData.from,
                     fromName: userData?.displayName,
                     fromPhotoURL: userData?.photoURL
                 } as FriendRequest;
@@ -140,3 +137,4 @@ export default function FriendRequestBell() {
         </Popover>
     )
 }
+

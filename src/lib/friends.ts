@@ -1,89 +1,96 @@
 
-import { rtdb, db } from './firebase';
-import { ref, set, get, remove, serverTimestamp } from 'firebase/database';
-import { doc, getDoc } from 'firebase/firestore';
+import { db } from './firebase';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  serverTimestamp,
+  writeBatch,
+  collection,
+} from 'firebase/firestore';
 
-// Function to send a friend request using RTDB
+// Function to send a friend request using Firestore
 export const sendFriendRequest = async (fromUid: string, toUid: string) => {
   if (fromUid === toUid) return;
-  const requestRef = ref(rtdb, `friendRequests/${fromUid}_${toUid}`);
-  const inverseRequestRef = ref(rtdb, `friendRequests/${toUid}_${fromUid}`);
+  const requestId = `${fromUid}_${toUid}`;
+  const inverseRequestId = `${toUid}_${fromUid}`;
+  
+  const requestRef = doc(db, 'friendRequests', requestId);
+  const inverseRequestRef = doc(db, 'friendRequests', inverseRequestId);
 
-  const inverseRequestSnap = await get(inverseRequestRef);
+  const inverseRequestSnap = await getDoc(inverseRequestRef);
+  // If an inverse request exists, it means the other user already sent us a request.
+  // We can just accept it.
   if (inverseRequestSnap.exists()) {
     await acceptFriendRequest(toUid, fromUid);
     return;
   }
-
-  const requestSnap = await get(requestRef);
+  
+  const requestSnap = await getDoc(requestRef);
   if (requestSnap.exists()) {
     throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
 
-  await set(requestRef, {
+  await setDoc(requestRef, {
     from: fromUid,
     to: toUid,
     createdAt: serverTimestamp(),
   });
 };
 
-// Function to accept a friend request using RTDB
+// Function to accept a friend request using Firestore and a batch write
 export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const requestId = `${fromUid}_${toUid}`;
-  const requestRef = ref(rtdb, `friendRequests/${requestId}`);
-  
-  const requestSnap = await get(requestRef);
+  const requestDocRef = doc(db, 'friendRequests', requestId);
+
+  const requestSnap = await getDoc(requestDocRef);
   if (!requestSnap.exists()) {
-      throw new Error("Arkadaşlık isteği bulunamadı veya zaten işlendi.");
+    throw new Error('Arkadaşlık isteği bulunamadı veya zaten işlendi.');
   }
 
-  const userFriendRef = ref(rtdb, `friends/${toUid}/${fromUid}`);
-  const friendUserRef = ref(rtdb, `friends/${fromUid}/${toUid}`);
-  
-  const userDoc = await getDoc(doc(db, 'users', fromUid));
-  const friendDoc = await getDoc(doc(db, 'users', toUid));
+  const fromUserDocRef = doc(db, 'users', fromUid);
+  const toUserDocRef = doc(db, 'users', toUid);
 
-  if(!userDoc.exists() || !friendDoc.exists()) {
-      throw new Error("Kullanıcı bulunamadı.");
+  const fromUserSnap = await getDoc(fromUserDocRef);
+  const toUserSnap = await getDoc(toUserDocRef);
+
+  if (!fromUserSnap.exists() || !toUserSnap.exists()) {
+    throw new Error('Kullanıcı bulunamadı.');
   }
-
-  const updates: { [key: string]: any } = {};
-  updates[`friends/${toUid}/${fromUid}`] = userDoc.data();
-  updates[`friends/${fromUid}/${toUid}`] = friendDoc.data();
-  updates[`friendRequests/${requestId}`] = null; // Delete request
-
-  // Atomically update all paths
-  const rootRef = ref(rtdb);
-  await set(rootRef, { ... (await get(rootRef)).val(), ...updates });
-  // This is a simplified approach for demonstration. For production, you'd use `update(ref(rtdb), updates)`
-  // but `update` requires a bit more setup for deep paths, so we'll use `set` on the root for simplicity here.
-  // A better approach would be:
-  const updateOps: { [key: string]: any } = {};
-  updateOps[`/friends/${toUid}/${fromUid}`] = userDoc.data();
-  updateOps[`/friends/${fromUid}/${toUid}`] = friendDoc.data();
-  updateOps[`/friendRequests/${requestId}`] = null;
   
-  // To perform atomic multi-path updates, you should use the update function
-  // The below is a placeholder to represent how it should be done.
-  // In a real scenario, you would structure your updates like this:
-  await set(userFriendRef, userDoc.data());
-  await set(friendUserRef, friendDoc.data());
-  await remove(requestRef);
+  const batch = writeBatch(db);
 
+  // Add each user to the other's friends subcollection
+  const toUserFriendRef = doc(collection(toUserDocRef, 'friends'), fromUid);
+  batch.set(toUserFriendRef, fromUserSnap.data());
+
+  const fromUserFriendRef = doc(collection(fromUserDocRef, 'friends'), toUid);
+  batch.set(fromUserFriendRef, toUserSnap.data());
+
+  // Delete the friend request
+  batch.delete(requestDocRef);
+
+  await batch.commit();
 };
 
-// Function to reject a friend request using RTDB
-export const rejectFriendRequest = async (fromUid: string, toUid: string) => {
+// Function to reject a friend request using Firestore
+export const rejectFriendRequest = async (fromUid:string, toUid:string) => {
     const requestId = `${fromUid}_${toUid}`;
-    const requestDocRef = ref(rtdb, `friendRequests/${requestId}`);
-    await remove(requestDocRef);
+    const requestDocRef = doc(db, `friendRequests`, requestId);
+    await deleteDoc(requestDocRef);
 };
 
-// Function to remove a friend using RTDB
-export const removeFriend = async (currentUserUid: string, friendUid: string) => {
-    const userFriendRef = ref(rtdb, `friends/${currentUserUid}/${friendUid}`);
-    const friendUserRef = ref(rtdb, `friends/${friendUid}/${currentUserUid}`);
+// Function to remove a friend using Firestore
+export const removeFriend = async (currentUserUid:string, friendUid:string) => {
+    const batch = writeBatch(db);
+
+    const userFriendRef = doc(db, `users/${currentUserUid}/friends/${friendUid}`);
+    const friendUserRef = doc(db, `users/${friendUid}/friends/${currentUserUid}`);
+
+    batch.delete(userFriendRef);
+    batch.delete(friendUserRef);
     
-    await remove(userFriendRef);
-    await remove(friendUserRef);
+    await batch.commit();
 };
+

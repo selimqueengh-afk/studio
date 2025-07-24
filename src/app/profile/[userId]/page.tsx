@@ -3,9 +3,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { ref, onValue } from 'firebase/database';
-import { db, rtdb } from '@/lib/firebase';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -40,26 +39,26 @@ export default function ProfilePage() {
   };
 
   const checkFriendshipStatus = useCallback(() => {
-    if (!currentUser || !userId) return;
+    if (!currentUser || !userId) return () => {};
 
-    // Check friends in RTDB
-    const friendRef = ref(rtdb, `friends/${currentUser.uid}/${userId}`);
-    const unsubscribeFriend = onValue(friendRef, (snapshot) => {
+    // Check if they are friends by looking in the subcollection
+    const friendRef = doc(db, `users/${currentUser.uid}/friends/${userId}`);
+    const unsubscribeFriend = onSnapshot(friendRef, (snapshot) => {
         if (snapshot.exists()) {
             setFriendshipStatus('friends');
             return;
         }
 
-        // If not friends, check for requests in RTDB
-        const sentRequestRef = ref(rtdb, `friendRequests/${currentUser.uid}_${userId}`);
-        const unsubscribeSent = onValue(sentRequestRef, (sentSnap) => {
+        // If not friends, check for pending requests
+        const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
+        const unsubscribeSent = onSnapshot(sentRequestRef, (sentSnap) => {
             if (sentSnap.exists()) {
                 setFriendshipStatus('pending');
                 return;
             }
 
-            const receivedRequestRef = ref(rtdb, `friendRequests/${userId}_${currentUser.uid}`);
-            const unsubscribeReceived = onValue(receivedRequestRef, (receivedSnap) => {
+            const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
+            const unsubscribeReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
                 if (receivedSnap.exists()) {
                     setFriendshipStatus('received_request');
                 } else {
@@ -78,27 +77,30 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!userId) return;
 
-    const fetchProfile = async () => {
-      setLoading(true);
-      const docRef = doc(db, 'users', userId);
-      const docSnap = await getDoc(docRef);
-
+    setLoading(true);
+    const docRef = doc(db, 'users', userId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
         console.log('No such document!');
+        setProfile(null);
       }
       setLoading(false);
-    };
-
-    fetchProfile();
+    });
+    
+    return () => unsubscribe();
   }, [userId]);
   
   useEffect(() => {
     if (!currentUser || !userId) return;
 
     const unsubscribe = checkFriendshipStatus();
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [currentUser, userId, checkFriendshipStatus]);
 
 
@@ -151,7 +153,8 @@ export default function ProfilePage() {
       await removeFriend(currentUser.uid, profile.uid);
       setFriendshipStatus('none');
       toast({ title: 'Başarılı', description: 'Arkadaşlıktan çıkarıldı.' });
-    } catch (error) {
+    } catch (error)
+    {
       console.error(error);
        toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'Arkadaşlıktan çıkarılamadı.' });
     }

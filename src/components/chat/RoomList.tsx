@@ -5,8 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { collection, onSnapshot, doc, getDoc, setDoc, serverTimestamp, query } from 'firebase/firestore';
-import { ref, onValue } from 'firebase/database';
-import { db, rtdb } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -46,19 +45,15 @@ export default function RoomList() {
   useEffect(() => {
     if (!user) return;
     setLoadingFriends(true);
-    const friendsRef = ref(rtdb, `friends/${user.uid}`);
     
-    const unsubscribe = onValue(friendsRef, (snapshot) => {
-        const friendsData = snapshot.val();
-        if (friendsData) {
-            const friendsList = Object.keys(friendsData).map(key => ({
-                uid: key,
-                ...friendsData[key]
-            } as Friend));
-            setFriends(friendsList);
-        } else {
-            setFriends([]);
-        }
+    const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
+
+    const unsubscribe = onSnapshot(friendsQuery, (snapshot) => {
+        const friendsList = snapshot.docs.map(doc => ({
+            uid: doc.id,
+            ...doc.data()
+        })) as Friend[];
+        setFriends(friendsList);
         setLoadingFriends(false);
     }, (error) => {
         console.error("Error fetching friends: ", error);
@@ -163,3 +158,4 @@ export default function RoomList() {
     </div>
   );
 }
+

@@ -2,9 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot as onFirestoreSnapshot, where, getDocs } from 'firebase/firestore';
-import { ref, onValue } from 'firebase/database';
-import { db, rtdb } from '@/lib/firebase';
+import { collection, query, onSnapshot, where, getDocs, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,31 +29,29 @@ export default function FindFriendsPage() {
     useEffect(() => {
         if (!currentUser) return;
 
-        // Fetch current user's friends and requests from RTDB to filter the user list
-        const friendsRef = ref(rtdb, `friends/${currentUser.uid}`);
-        onValue(friendsRef, (snapshot) => {
-            setFriendUids(snapshot.exists() ? Object.keys(snapshot.val()) : []);
+        // Fetch current user's friends from Firestore to filter the user list
+        const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
+        const unsubscribeFriends = onSnapshot(friendsQuery, (snapshot) => {
+            setFriendUids(snapshot.docs.map(doc => doc.id));
         });
 
-        const requestsRef = ref(rtdb, 'friendRequests');
-        onValue(requestsRef, (snapshot) => {
-            const requests = snapshot.val() || {};
-            const uids: string[] = [];
-            for (const key in requests) {
-                const request = requests[key];
-                if (request.from === currentUser.uid) {
-                    uids.push(request.to);
-                }
-                if (request.to === currentUser.uid) {
-                    uids.push(request.from);
-                }
-            }
-            setRequestUids(uids);
+        // Fetch pending friend requests (sent and received)
+        const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', currentUser.uid));
+        const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', currentUser.uid));
+
+        const unsubscribeSent = onSnapshot(sentRequestsQuery, (snapshot) => {
+            const sentUids = snapshot.docs.map(doc => doc.data().to);
+            setRequestUids(prev => [...new Set([...prev, ...sentUids])]);
         });
 
+        const unsubscribeReceived = onSnapshot(receivedRequestsQuery, (snapshot) => {
+             const receivedUids = snapshot.docs.map(doc => doc.data().from);
+             setRequestUids(prev => [...new Set([...prev, ...receivedUids])]);
+        });
+        
         // Fetch all users from Firestore, excluding the current user
         const usersQuery = query(collection(db, 'users'), where('uid', '!=', currentUser.uid));
-        const unsubscribe = onFirestoreSnapshot(usersQuery, (snapshot) => {
+        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
             const usersData = snapshot.docs.map(doc => doc.data() as User);
             setUsers(usersData);
             setLoading(false);
@@ -63,7 +60,12 @@ export default function FindFriendsPage() {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeFriends();
+            unsubscribeSent();
+            unsubscribeReceived();
+            unsubscribeUsers();
+        }
     }, [currentUser]);
 
     const filteredUsers = users.filter(user => 
