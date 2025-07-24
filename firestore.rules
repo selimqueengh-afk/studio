@@ -1,25 +1,20 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Kullanıcıların kendi belgelerini ve diğer kullanıcıları okumasına izin ver
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
-    }
-
-    // Giriş yapmış kullanıcıların oda oluşturmasına ve okumasına izin ver
+    // Allows authenticated users to read and write to the rooms and messages collections
     match /rooms/{roomId} {
       allow read, create: if request.auth != null;
-      
-      // Odanın yaratıcısının odayı silmesine izin ver
-      allow delete: if request.auth != null && get(/databases/$(database)/documents/rooms/$(roomId)).data.creatorId == request.auth.uid;
+      allow update, delete: if request.auth.uid == resource.data.creatorId;
 
-      // Giriş yapmış kullanıcıların mesajları okumasına ve yazmasına izin ver
       match /messages/{messageId} {
         allow read, create: if request.auth != null;
       }
+    }
+    
+    // Allows authenticated users to read the users collection, and create/update their own user document
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
