@@ -142,7 +142,7 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full p-4 max-w-4xl mx-auto w-full">
+      <div className="flex flex-col h-full p-4 max-w-md mx-auto w-full">
         <Skeleton className="h-8 w-48 mb-4" />
         <div className="flex-1 space-y-4">
           <div className="flex items-start gap-2.5">
@@ -166,7 +166,7 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   }
 
   return (
-    <div className="flex h-full flex-col max-w-4xl mx-auto w-full">
+    <div className="flex h-full flex-col max-w-md mx-auto w-full">
        <header className="flex items-center justify-between h-16 shrink-0 border-b bg-card px-6">
         <h2 className="text-lg font-semibold">{room?.name || 'Sohbet'}</h2>
         {user && room && user.uid === room.creatorId && (
