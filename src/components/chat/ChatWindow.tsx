@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ReelCard from '../reels/ReelCard';
-import type { Reel } from '@/app/reels/page';
+import type { Reel } from '@/lib/youtube';
 
 
 interface MessageData {

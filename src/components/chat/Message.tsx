@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import ReelCard from '../reels/ReelCard';
-import type { Reel } from '@/app/reels/page';
+import type { Reel } from '@/lib/youtube';
 
 interface MessageProps {
   message: {
@@ -57,7 +57,7 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
         </div>
         
         {message.type === 'reel' && message.reel ? (
-             <ReelCard reel={message.reel} />
+             <ReelCard reel={message.reel} isShared={true} />
         ) : (
             <div
                 className={cn(
