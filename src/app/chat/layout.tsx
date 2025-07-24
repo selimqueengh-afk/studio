@@ -26,7 +26,7 @@ export default function ChatLayout({
               <RoomList />
             </ScrollArea>
           </Sidebar>
-          <main className="flex h-full flex-1 flex-col overflow-hidden">{children}</main>
+          <main className="flex-1 overflow-x-hidden">{children}</main>
         </div>
       </div>
     </SidebarProvider>
