@@ -22,6 +22,12 @@ export default function BottomNav() {
         return null;
     }
 
+    // Hide the bottom nav if we are inside a specific chat room
+    if (pathname.startsWith('/chat/')) {
+        return null;
+    }
+
+
     return (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t md:hidden">
             <div className="flex justify-around items-center h-16">
