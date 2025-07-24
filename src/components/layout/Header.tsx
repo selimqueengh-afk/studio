@@ -1,6 +1,7 @@
 import { MessageSquare } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
+import UserNav from '@/components/auth/UserNav';
 
 export default function Header() {
   return (
@@ -12,6 +13,7 @@ export default function Header() {
           <span className="font-bold">Sohbet Odası</span>
         </Link>
       </div>
+      <UserNav />
     </header>
   );
 }
