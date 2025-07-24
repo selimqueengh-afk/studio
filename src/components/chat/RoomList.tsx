@@ -25,6 +25,8 @@ import { Input } from '@/components/ui/input';
 import { Plus, Hash, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useSidebar } from '@/components/ui/sidebar';
+
 
 interface Room {
   id: string;
@@ -39,6 +41,8 @@ export default function RoomList() {
   const [isCreatingRoom, setCreatingRoom] = useState(false);
   const pathname = usePathname();
   const { toast } = useToast();
+  const { setOpenMobile } = useSidebar();
+
 
   useEffect(() => {
     const q = query(collection(db, 'rooms'), orderBy('createdAt', 'asc'));
@@ -126,6 +130,7 @@ export default function RoomList() {
             <Link
               key={room.id}
               href={`/chat/${room.id}`}
+              onClick={() => setOpenMobile(false)}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-secondary',
                 pathname === `/chat/${room.id}` && 'bg-secondary text-primary font-semibold'
