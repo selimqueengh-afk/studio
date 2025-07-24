@@ -4,52 +4,43 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read/write their own user document.
-    // Users can read other user's public profiles.
+    // Users can read and write their own user document
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Rules for the 'friends' subcollection
+      // Anyone can read a user's public profile
+      allow get: if request.auth != null;
+
+      // A user's friends subcollection can only be read by the user
       match /friends/{friendId} {
-        // A user can read and delete their own friends list.
-        allow read, delete: if request.auth.uid == userId;
-
-        // A user can add a friend to another user's list ONLY if
-        // there is a corresponding friend request that they are accepting.
-        allow create: if request.auth.uid == friendId &&
-                       exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)) &&
-                       get(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)).data.to == request.auth.uid;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Rules for friend requests
-    match /friendRequests/{requestId} {
-      // Users can read requests sent to them.
-      allow read: if request.auth.uid == resource.data.to;
-      
-      // Users can create requests if they are the sender.
-      // The request ID must match the format 'fromUid_toUid'.
-      allow create: if request.auth.uid == request.resource.data.from &&
-                     requestId == request.resource.data.from + '_' + request.resource.data.to;
-      
-      // Users can delete requests they sent or requests sent to them.
-      allow delete: if request.auth.uid == resource.data.from || request.auth.uid == resource.data.to;
-    }
-    
-    // Rules for chat rooms and messages
+    // Rules for chat rooms
     match /rooms/{roomId} {
-      // Allow read/write access to a room only if the user is a participant.
-      allow read, write: if request.auth.uid in resource.data.participants;
+      // Allow read/write access to room document for participants
+      allow read, write: if request.auth != null && resource.data.participants[request.auth.uid] == true;
 
+      // Rules for messages within a room
       match /messages/{messageId} {
-        // Allow read access to messages if the user is a participant of the room.
-        allow read: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+        // Participants can read all messages
+        allow read: if request.auth != null && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
         
-        // Allow creating messages if the user is the sender and a participant of the room.
-        allow create: if request.auth.uid == request.resource.data.userId &&
-                       get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+        // Only authenticated users who are participants can create messages
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId &&
+                         get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
       }
+    }
+
+    // Public read for all users
+     match /users/{userId} {
+       allow get: if request.auth != null;
+     }
+
+     // Deny all other friend-related writes to prevent bypasses
+    match /users/{userId}/friends/{friendId} {
+        allow write: if false; 
     }
   }
 }

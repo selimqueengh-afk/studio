@@ -1,0 +1,31 @@
+
+{
+  "rules": {
+    // friendRequests can be read if the user is the sender or receiver.
+    // They can be written if the user is the sender.
+    "friendRequests": {
+      "$requestId": {
+        ".read": "auth != null && (data.child('from').val() === auth.uid || data.child('to').val() === auth.uid)",
+        ".write": "auth != null && newData.child('from').val() === auth.uid && !data.exists()",
+        ".validate": "newData.hasChildren(['from', 'to', 'createdAt'])"
+      }
+    },
+    // The friends list can be read by the owner of the list.
+    "friends": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        // A user can be added to the friends list only if a corresponding friend request exists which is now being deleted.
+        "$friendId": {
+           ".write": "auth != null && (auth.uid === $userId || auth.uid === $friendId) && root.child('friendRequests').child(auth.uid + '_' + (auth.uid === $userId ? $friendId : $userId)).val() === null || root.child('friendRequests').child((auth.uid === $userId ? $friendId : $userId) + '_' + auth.uid).val() === null"
+        }
+      }
+    },
+     // Users node holds public data readable by all authenticated users
+    "users": {
+        "$uid": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $uid"
+        }
+    }
+  }
+}

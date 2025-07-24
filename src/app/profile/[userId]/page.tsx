@@ -3,8 +3,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, onSnapshot, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { ref, onValue } from 'firebase/database';
+import { db, rtdb } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -38,31 +39,39 @@ export default function ProfilePage() {
     return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
   };
 
-  const checkFriendshipStatus = useCallback(async () => {
+  const checkFriendshipStatus = useCallback(() => {
     if (!currentUser || !userId) return;
 
-    // Check if they are friends
-    const friendDoc = await getDoc(doc(db, 'users', currentUser.uid, 'friends', userId));
-    if (friendDoc.exists()) {
-      setFriendshipStatus('friends');
-      return;
-    }
+    // Check friends in RTDB
+    const friendRef = ref(rtdb, `friends/${currentUser.uid}/${userId}`);
+    const unsubscribeFriend = onValue(friendRef, (snapshot) => {
+        if (snapshot.exists()) {
+            setFriendshipStatus('friends');
+            return;
+        }
+
+        // If not friends, check for requests in RTDB
+        const sentRequestRef = ref(rtdb, `friendRequests/${currentUser.uid}_${userId}`);
+        const unsubscribeSent = onValue(sentRequestRef, (sentSnap) => {
+            if (sentSnap.exists()) {
+                setFriendshipStatus('pending');
+                return;
+            }
+
+            const receivedRequestRef = ref(rtdb, `friendRequests/${userId}_${currentUser.uid}`);
+            const unsubscribeReceived = onValue(receivedRequestRef, (receivedSnap) => {
+                if (receivedSnap.exists()) {
+                    setFriendshipStatus('received_request');
+                } else {
+                    setFriendshipStatus('none');
+                }
+            });
+            return () => unsubscribeReceived();
+        });
+        return () => unsubscribeSent();
+    });
     
-    // Check if a request was sent
-    const sentRequestDoc = await getDoc(doc(db, 'friendRequests', `${currentUser.uid}_${userId}`));
-    if (sentRequestDoc.exists()) {
-      setFriendshipStatus('pending');
-      return;
-    }
-
-    // Check if a request was received
-    const receivedRequestDoc = await getDoc(doc(db, 'friendRequests', `${userId}_${currentUser.uid}`));
-    if (receivedRequestDoc.exists()) {
-        setFriendshipStatus('received_request');
-        return;
-    }
-
-    setFriendshipStatus('none');
+    return () => unsubscribeFriend();
 
   }, [currentUser, userId]);
 
@@ -88,25 +97,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!currentUser || !userId) return;
 
-    // Listen for changes in friend requests to update status in real-time
-    const sentReqUnsub = onSnapshot(doc(db, "friendRequests", `${currentUser.uid}_${userId}`), () => {
-        checkFriendshipStatus();
-    });
-    const receivedReqUnsub = onSnapshot(doc(db, "friendRequests", `${userId}_${currentUser.uid}`), () => {
-        checkFriendshipStatus();
-    });
-    // Listen for changes in friends subcollections
-    const userFriendsUnsub = onSnapshot(collection(db, `users/${currentUser.uid}/friends`), () => {
-        checkFriendshipStatus();
-    });
-
-    checkFriendshipStatus();
-
-    return () => {
-        sentReqUnsub();
-        receivedReqUnsub();
-        userFriendsUnsub();
-    };
+    const unsubscribe = checkFriendshipStatus();
+    return () => unsubscribe();
   }, [currentUser, userId, checkFriendshipStatus]);
 
 
@@ -198,6 +190,8 @@ export default function ProfilePage() {
   }
   
   if (currentUser?.uid === userId) {
+    // Navigate to a dedicated "My Profile" page or show a specific message/UI
+    // For now, we'll just show a message.
     return <div className="text-center p-8">Burası sizin profil sayfanız.</div>
   }
 

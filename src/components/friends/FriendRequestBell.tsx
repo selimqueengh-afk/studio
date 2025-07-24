@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, onValue, query, orderByChild, equalTo } from 'firebase/database';
+import { rtdb, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import {
   Popover,
@@ -32,16 +33,22 @@ export default function FriendRequestBell() {
     useEffect(() => {
         if (!user) return;
 
-        const q = query(collection(db, 'friendRequests'), where('to', '==', user.uid));
+        const requestsRef = ref(rtdb, 'friendRequests');
+        const q = query(requestsRef, orderByChild('to'), equalTo(user.uid));
         
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const requestsPromises = snapshot.docs.map(async (requestDoc) => {
-                const requestData = requestDoc.data();
-                const userDocSnap = await getDoc(doc(db, 'users', requestData.from));
+        const unsubscribe = onValue(q, async (snapshot) => {
+            if (!snapshot.exists()) {
+                setRequests([]);
+                return;
+            }
+            const requestsData = snapshot.val();
+            const requestsPromises = Object.keys(requestsData).map(async (key) => {
+                const request = requestsData[key];
+                const userDocSnap = await getDoc(doc(db, 'users', request.from));
                 const userData = userDocSnap.data();
                 return {
-                    id: requestDoc.id,
-                    from: requestData.from,
+                    id: key,
+                    from: request.from,
                     fromName: userData?.displayName,
                     fromPhotoURL: userData?.photoURL
                 } as FriendRequest;
@@ -62,7 +69,7 @@ export default function FriendRequestBell() {
             toast({ title: "Kabul Edildi", description: "Arkadaşlık isteğini kabul ettiniz." });
         } catch (error) {
             console.error(error);
-            toast({ variant: 'destructive', title: "Hata", description: "İstek kabul edilemedi." });
+            toast({ variant: 'destructive', title: "Hata", description: (error as Error).message || "İstek kabul edilemedi." });
         }
         setIsUpdating(null);
     };
@@ -75,7 +82,7 @@ export default function FriendRequestBell() {
             toast({ title: "Reddedildi", description: "Arkadaşlık isteğini reddettiniz." });
         } catch (error) {
             console.error(error);
-            toast({ variant: 'destructive', title: "Hata", description: "İstek reddedilemedi." });
+            toast({ variant: 'destructive', title: "Hata", description: (error as Error).message || "İstek reddedilemedi." });
         }
         setIsUpdating(null);
     };

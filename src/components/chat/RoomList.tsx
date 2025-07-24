@@ -4,20 +4,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  collection,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  query,
-  orderBy,
-  where,
-  getDoc,
-  doc,
-  setDoc,
-  getDocs,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, getDoc, setDoc, serverTimestamp, query } from 'firebase/firestore';
+import { ref, onValue } from 'firebase/database';
+import { db, rtdb } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -36,13 +25,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Separator } from '../ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ScrollArea } from '../ui/scroll-area';
-
-
-interface Room {
-  id: string;
-  name: string;
-  creatorId: string;
-}
 
 interface Friend {
     uid: string;
@@ -64,20 +46,19 @@ export default function RoomList() {
   useEffect(() => {
     if (!user) return;
     setLoadingFriends(true);
-    const friendsQuery = query(collection(db, `users/${user.uid}/friends`));
+    const friendsRef = ref(rtdb, `friends/${user.uid}`);
     
-    const unsubscribe = onSnapshot(friendsQuery, async (snapshot) => {
-        const friendPromises = snapshot.docs.map(friendDoc => {
-            const friendId = friendDoc.id;
-            return getDoc(doc(db, 'users', friendId));
-        });
-
-        const friendDocs = await Promise.all(friendPromises);
-        const friendsData = friendDocs
-            .filter(doc => doc.exists())
-            .map(doc => doc.data() as Friend);
-
-        setFriends(friendsData);
+    const unsubscribe = onValue(friendsRef, (snapshot) => {
+        const friendsData = snapshot.val();
+        if (friendsData) {
+            const friendsList = Object.keys(friendsData).map(key => ({
+                uid: key,
+                ...friendsData[key]
+            } as Friend));
+            setFriends(friendsList);
+        } else {
+            setFriends([]);
+        }
         setLoadingFriends(false);
     }, (error) => {
         console.error("Error fetching friends: ", error);
