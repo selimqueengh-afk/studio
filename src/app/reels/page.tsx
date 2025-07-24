@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Loader2, PlayCircle, Send, AlertTriangle, VolumeX, Volume2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, PlayCircle, Send, AlertTriangle, VolumeX, Volume2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +21,7 @@ export default function ReelsPage() {
   const [isMuted, setIsMuted] = useState(true);
   const [intersectingReelId, setIntersectingReelId] = useState<string | null>(null);
 
+  const router = useRouter();
   const observer = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
 
@@ -168,7 +170,15 @@ export default function ReelsPage() {
   }
 
   return (
-    <div className="h-full w-full max-w-md mx-auto bg-black overflow-y-auto snap-y snap-mandatory">
+    <div className="h-full w-full max-w-md mx-auto bg-black overflow-y-auto snap-y snap-mandatory relative">
+      <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 left-4 z-20 text-white bg-black/20 hover:bg-black/40"
+          onClick={() => router.back()}
+      >
+          <ArrowLeft className="w-6 h-6" />
+      </Button>
       {renderContent()}
       {loading && (
         <div className="h-full w-full snap-center flex items-center justify-center text-white">
