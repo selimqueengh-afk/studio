@@ -1,54 +1,52 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Users can be read by anyone signed in, but only created/updated by the user themselves.
+    // Users can read/write their own user document.
+    // Users can read other users' documents.
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isUser(userId);
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
+      allow get: if request.auth != null;
 
-      // Friends subcollection rules
+      // Rules for the 'friends' subcollection
       match /friends/{friendId} {
-        allow read: if isUser(userId);
-        // Writes to friends list are handled by the acceptFriendRequest logic below
-        allow create, delete: if 
-          // Allow creating a friend if accepting a request from them
-          (request.resource.data.since == request.time && exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId))) ||
-          // Allow creating a friend if they are accepting a request from you
-          (request.resource.data.since == request.time && exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId))) ||
-          // Allow deleting a friend record (removing a friend)
-          (isUser(userId));
+        allow read: if request.auth.uid == userId;
+        allow write, delete: if 
+          // Allow adding a friend ONLY if a corresponding friend request exists
+          // and the current user is the one accepting the request.
+          (exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)) && get(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)).data.to == request.auth.uid) ||
+          (exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)) && get(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)).data.to == request.auth.uid) ||
+          // Allow the user to remove a friend from their own list
+          (request.auth.uid == userId && !request.resource.data.keys().hasAny(['since']));
       }
     }
 
-    // Friend requests
-    match /friendRequests/{requestId} {
-      // Allow read if user is sender or receiver
-      allow read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
-      // Allow create if the user is the sender and the requestId is correct
-      allow create: if isUser(request.resource.data.from) && requestId == request.resource.data.from + '_' + request.resource.data.to;
-      // Allow delete if user is the sender (cancel) or receiver (reject/accept)
-      allow delete: if isSignedIn() && (isUser(resource.data.from) || isUser(resource.data.to));
-    }
-    
-    // Chat rooms
+    // Rules for the 'rooms' collection and 'messages' subcollection
     match /rooms/{roomId} {
-       allow read, create: if isSignedIn() && request.auth.uid in resource.data.participants;
-       
-       // Messages in a room
-       match /messages/{messageId} {
-         allow read, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participants;
-       }
+      // Allow read/write access to a room only if the user is a participant.
+      allow read, write: if request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        // Allow users to read messages in rooms they are part of.
+        allow read: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]);
+        // Allow users to create messages if they are a participant and the message is from them.
+        allow create: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]) && request.resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // Rules for 'friendRequests' collection
+    match /friendRequests/{requestId} {
+        // Allow creating a request if the sender is the authenticated user.
+        allow create: if request.auth.uid == request.resource.data.from;
+        
+        // Allow reading a request if the user is the sender or the receiver.
+        allow read: if request.auth.uid == resource.data.from || request.auth.uid == resource.data.to;
+        
+        // Allow deleting a request (rejecting/canceling) if the user is the receiver or the sender.
+        allow delete: if request.auth.uid == resource.data.to || request.auth.uid == resource.data.from;
     }
   }
 }

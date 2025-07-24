@@ -5,8 +5,14 @@ import { doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc } from 'fir
 // Function to send a friend request
 export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   if (fromUid === toUid) return;
-  const requestId = `${fromUid}_${toUid}`;
-  await setDoc(doc(db, 'friendRequests', requestId), {
+  // Ensure consistent request ID ordering
+  const requestId = fromUid > toUid ? `${fromUid}_${toUid}` : `${toUid}_${fromUid}`;
+  
+  // Check if a request already exists to prevent duplicates. Let's use the one where 'from' is the sender.
+  const friendRequestDocId = `${fromUid}_${toUid}`;
+  const requestDocRef = doc(db, 'friendRequests', friendRequestDocId);
+
+  await setDoc(requestDocRef, {
     from: fromUid,
     to: toUid,
     status: 'pending',
@@ -19,6 +25,12 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const batch = writeBatch(db);
   const requestId = `${fromUid}_${toUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
+
+  // Check if the request document exists before proceeding.
+  const requestSnap = await getDoc(requestDocRef);
+  if (!requestSnap.exists()) {
+    throw new Error("Arkadaşlık isteği bulunamadı veya zaten işlendi.");
+  }
 
   // Add each user to the other's friends subcollection
   const user1FriendRef = doc(db, 'users', fromUid, 'friends', toUid);
