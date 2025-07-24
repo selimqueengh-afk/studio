@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
@@ -10,7 +11,8 @@ const firebaseConfig = {
   storageBucket: "sohbet-odas-zfrqc.firebasestorage.app",
   apiKey: "AIzaSyBf_fp93ufZ9Jwd9Tunwzr1HZy1JGG_D64",
   authDomain: "sohbet-odas-zfrqc.firebaseapp.com",
-  messagingSenderId: "966575380934"
+  messagingSenderId: "966575380934",
+  databaseURL: "https://sohbet-odas-zfrqc-default-rtdb.firebaseio.com"
 };
 
 // Initialize Firebase
@@ -20,3 +22,5 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 export { app, auth, db, storage };
+
+    
