@@ -28,7 +28,7 @@ export default function ReelsPage() {
   const observer = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
 
-  const loadMoreReels = useCallback(async () => {
+  const loadMoreReels = useCallback(async (currentLastDoc: QueryDocumentSnapshot<DocumentData> | null) => {
     if (loading || !hasMore) return;
     setLoading(true);
 
@@ -39,25 +39,24 @@ export default function ReelsPage() {
         limit(5)
       );
 
-      if (lastDoc) {
-        q = query(q, startAfter(lastDoc));
+      if (currentLastDoc) {
+        q = query(q, startAfter(currentLastDoc));
       }
 
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         setHasMore(false);
-        setLoading(false);
-        return;
+      } else {
+        const newReels = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as Reel[];
+        
+        const newLastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+        setLastDoc(newLastDoc);
+        setReels(prev => [...prev, ...newReels]);
       }
-      
-      const newReels = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-      })) as Reel[];
-      
-      setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
-      setReels(prev => [...prev, ...newReels]);
 
     } catch (error) {
         console.error("Error fetching reels: ", error);
@@ -67,15 +66,15 @@ export default function ReelsPage() {
             description: "Videolar yüklenirken bir sorun oluştu."
         });
         setHasMore(false);
+    } finally {
+        setLoading(false);
     }
+  }, [loading, hasMore, toast]);
 
-
-    setLoading(false);
-  }, [loading, hasMore, lastDoc, toast]);
 
   useEffect(() => {
     // Load initial reels only once
-    loadMoreReels();
+    loadMoreReels(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,12 +84,12 @@ export default function ReelsPage() {
     
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
-        loadMoreReels();
+        loadMoreReels(lastDoc);
       }
     });
 
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, loadMoreReels]);
+  }, [loading, hasMore, loadMoreReels, lastDoc]);
   
   const handleShareClick = (reel: Reel) => {
     setSelectedReel(reel);
@@ -136,6 +135,11 @@ export default function ReelsPage() {
       {!hasMore && reels.length > 0 && (
          <div className="h-24 w-full flex items-center justify-center text-white">
             <p>Daha fazla video yok.</p>
+        </div>
+      )}
+       {!loading && !hasMore && reels.length === 0 && (
+        <div className="h-full w-full flex items-center justify-center text-white p-4 text-center">
+            <p>Henüz hiç video yok. Lütfen daha sonra tekrar kontrol edin!</p>
         </div>
       )}
       {selectedReel && (
