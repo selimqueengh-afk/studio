@@ -14,20 +14,6 @@ interface Reel {
   author: string;
 }
 
-const generateMockReels = (count: number, page: number): Reel[] => {
-  const reels: Reel[] = [];
-  for (let i = 0; i < count; i++) {
-    const id = page * count + i;
-    reels.push({
-      id: id,
-      videoUrl: `https://placehold.co/1080x1920.png?text=Video+${id}`,
-      thumbnailUrl: `https://placehold.co/1080x1920.png?text=Reel+${id}`,
-      author: `@kullanici${id}`,
-    });
-  }
-  return reels;
-};
-
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,15 +22,28 @@ export default function ReelsPage() {
   const [isShareSheetOpen, setShareSheetOpen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
 
+  const generateMockReels = useCallback((count: number, currentReelCount: number): Reel[] => {
+    const newReels: Reel[] = [];
+    for (let i = 0; i < count; i++) {
+      const id = currentReelCount + i;
+      newReels.push({
+        id: id,
+        videoUrl: `https://placehold.co/1080x1920.png?text=Video+${id}`,
+        thumbnailUrl: `https://placehold.co/1080x1920.png?text=Reel+${id}`,
+        author: `@kullanici${id}`,
+      });
+    }
+    return newReels;
+  }, []);
+
   const loadMoreReels = useCallback(async () => {
     setLoading(true);
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-    const newReels = generateMockReels(5, page);
-    setReels(prev => [...prev, ...newReels]);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setReels(prev => [...prev, ...generateMockReels(5, prev.length)]);
     setPage(prev => prev + 1);
     setLoading(false);
-  }, [page]);
+  }, [generateMockReels]);
 
   useEffect(() => {
     loadMoreReels();
