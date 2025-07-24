@@ -3,46 +3,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isUser(userId);
-
-      match /friends/{friendId} {
-        allow read: if isUser(userId);
-        allow write: if isSignedIn() && (exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)) || exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)));
-        allow delete: if isSignedIn() && (isUser(userId) || isUser(friendId));
-      }
-    }
-
-    match /friendRequests/{requestId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from;
-      allow delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
-    }
-    
-    match /rooms/{roomId} {
-      allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
-
-      match /messages/{messageId} {
-        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        allow update, delete: if false; 
-      }
-    }
-
-    match /reels/{reelId} {
-      allow read: if isSignedIn();
-      // Allow create for signed in users for seeding purposes for now
-      allow create: if isSignedIn(); 
-      allow update, delete: if false;
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
