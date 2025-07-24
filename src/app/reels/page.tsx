@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
 import { Loader2, PlayCircle, Send, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
@@ -96,12 +95,10 @@ export default function ReelsPage() {
         key={reel.id + index} 
         className="h-full w-full snap-center relative flex items-center justify-center bg-black"
       >
-        <Image
+        <img
           src={reel.thumbnailUrl}
           alt={reel.description || `Reel from ${reel.author}`}
-          fill
-          style={{ objectFit: "contain" }} // Use contain to avoid cropping issues with different aspect ratios
-          priority={index < 2}
+          className="object-contain w-full h-full"
           data-ai-hint="youtube short"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>

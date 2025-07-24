@@ -1,7 +1,6 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { PlayCircle } from "lucide-react";
 import type { Reel } from "@/lib/youtube";
@@ -21,12 +20,10 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
     const cardContent = (
          <div className="relative aspect-[9/16] w-full h-full">
             {reel.thumbnailUrl ? (
-                <Image 
+                <img 
                     src={reel.thumbnailUrl}
                     alt={reel.description || `Reel from ${reel.author}`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    style={{objectFit: 'cover'}}
+                    className="object-cover w-full h-full"
                     data-ai-hint="youtube short thumbnail"
                 />
             ) : (
