@@ -17,66 +17,80 @@ const db = admin.firestore();
 
 const reels = [
   {
-    author: '@gezginruh',
-    description: 'Norveç fiyortlarında inanılmaz bir gün! 🏔️ #doğa #gezi',
-    thumbnailUrl: 'https://placehold.co/1080x1920/63cdda/ffffff.png?text=Fiyort',
-    videoUrl: 'https://placehold.co/1080x1920/63cdda/ffffff.png?text=Fiyort',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  },
-  {
-    author: '@gurmelezzetler',
-    description: 'Ev yapımı pizza tarifi. 🍕 #yemek #tarif #pizza',
-    thumbnailUrl: 'https://placehold.co/1080x1920/f4b04d/ffffff.png?text=Pizza',
-    videoUrl: 'https://placehold.co/1080x1920/f4b04d/ffffff.png?text=Pizza',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  },
-  {
-    author: '@sanatsokagi',
-    description: 'Suluboya ile galaksi çizimi. 🌌 #sanat #çizim',
-    thumbnailUrl: 'https://placehold.co/1080x1920/8a63d2/ffffff.png?text=Galaksi',
-    videoUrl: 'https://placehold.co/1080x1920/8a63d2/ffffff.png?text=Galaksi',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  },
-  {
-    author: '@fitgunluk',
-    description: 'Sabah sporu rutinim. 💪 #spor #sağlık',
-    thumbnailUrl: 'https://placehold.co/1080x1920/d2638a/ffffff.png?text=Spor',
-    videoUrl: 'https://placehold.co/1080x1920/d2638a/ffffff.png?text=Spor',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  },
-  {
     author: '@komikkediler',
-    description: 'Benim kedi yine formunda! 😂 #kedi #komik',
-    thumbnailUrl: 'https://placehold.co/1080x1920/6388d2/ffffff.png?text=Kedi',
-    videoUrl: 'https://placehold.co/1080x1920/6388d2/ffffff.png?text=Kedi',
+    description: 'Lazerin peşindeki kedi yine dağıttı ortalığı 😂 #kedi #komikvideo',
+    thumbnailUrl: 'https://placehold.co/1080x1920/f4b04d/ffffff.png?text=Komik+Kedi',
+    videoUrl: 'https://placehold.co/1080x1920/f4b04d/ffffff.png?text=Komik+Kedi',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'funny cat'
+  },
+  {
+    author: '@mutfaksakarlari',
+    description: 'Kek yapmaya çalışırken mutfağı batıran o arkadaşını etiketle 👇 #fail #mutfak',
+    thumbnailUrl: 'https://placehold.co/1080x1920/d2638a/ffffff.png?text=Mutfak+Fail',
+    videoUrl: 'https://placehold.co/1080x1920/d2638a/ffffff.png?text=Mutfak+Fail',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'kitchen fail'
+  },
+  {
+    author: '@dansedenbebek',
+    description: 'Bu bebek benden daha iyi dans ediyor! 🕺 #bebek #dans',
+    thumbnailUrl: 'https://placehold.co/1080x1920/63cdda/ffffff.png?text=Dans+Bebek',
+    videoUrl: 'https://placehold.co/1080x1920/63cdda/ffffff.png?text=Dans+Bebek',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'dancing baby'
+  },
+  {
+    author: '@sokakroportaji',
+    description: 'Basit bir soru sorduk, aldığımız cevaplar şok etti! 😱 #röportaj #komik',
+    thumbnailUrl: 'https://placehold.co/1080x1920/8a63d2/ffffff.png?text=Röportaj',
+    videoUrl: 'https://placehold.co/1080x1920/8a63d2/ffffff.png?text=Röportaj',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'street interview'
+  },
+  {
+    author: '@yeteneksiz',
+    description: 'Evde denemeyin! Bu taklit ne kadar kötü olabilir? #taklit #mizah',
+    thumbnailUrl: 'https://placehold.co/1080x1920/6388d2/ffffff.png?text=Yetenek',
+    videoUrl: 'https://placehold.co/1080x1920/6388d2/ffffff.png?text=Yetenek',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'talent show'
   },
    {
-    author: '@yazilimgunlugu',
-    description: 'Kod yazarken ben. 💻 #yazılım #kodlama',
-    thumbnailUrl: 'https://placehold.co/1080x1920/333333/ffffff.png?text=Kod',
-    videoUrl: 'https://placehold.co/1080x1920/333333/ffffff.png?text=Kod',
+    author: '@1saniyelik',
+    description: 'Hayatım gözlerimin önünden 1 saniyede geçti... #viral #akım',
+    thumbnailUrl: 'https://placehold.co/1080x1920/333333/ffffff.png?text=Viral',
+    videoUrl: 'https://placehold.co/1080x1920/333333/ffffff.png?text=Viral',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'fast motion'
   },
    {
-    author: '@kitapkurdu',
-    description: 'Bu ay okuduğum en iyi kitap. 📚 #kitap #okuma',
-    thumbnailUrl: 'https://placehold.co/1080x1920/a0522d/ffffff.png?text=Kitap',
-    videoUrl: 'https://placehold.co/1080x1920/a0522d/ffffff.png?text=Kitap',
+    author: '@papaganpower',
+    description: 'Sahibine laf yetiştiren papağan 🦜 #hayvanlar #konuşanpapağan',
+    thumbnailUrl: 'https://placehold.co/1080x1920/a0522d/ffffff.png?text=Papağan',
+    videoUrl: 'https://placehold.co/1080x1920/a0522d/ffffff.png?text=Papağan',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'talking parrot'
   },
    {
-    author: '@muzikruhu',
-    description: 'Gitar coverım yayında! 🎸 #müzik #gitar',
-    thumbnailUrl: 'https://placehold.co/1080x1920/ff4500/ffffff.png?text=Gitar',
-    videoUrl: 'https://placehold.co/1080x1920/ff4500/ffffff.png?text=Gitar',
+    author: '@babakomik',
+    description: 'Babamın teknolojiyle imtihanı... İzlerken gülme krizine girdim 😂 #baba #teknoloji',
+    thumbnailUrl: 'https://placehold.co/1080x1920/ff4500/ffffff.png?text=Baba+Komik',
+    videoUrl: 'https://placehold.co/1080x1920/ff4500/ffffff.png?text=Baba+Komik',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data-ai-hint: 'dad joke'
   }
 ];
 
 async function seedDatabase() {
   const reelsCollection = db.collection('reels');
   console.log('Veritabanına ekleme başlıyor...');
+  const snapshot = await reelsCollection.limit(1).get();
+  if (!snapshot.empty) {
+      console.log("Veritabanı zaten tohumlanmış gibi görünüyor. Komut dosyası atlanıyor.");
+      return;
+  }
+
   for (const reel of reels) {
     await reelsCollection.add(reel);
     console.log(`Eklenen: ${reel.author} - ${reel.description}`);
