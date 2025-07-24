@@ -93,4 +93,3 @@ export const removeFriend = async (currentUserUid:string, friendUid:string) => {
     
     await batch.commit();
 };
-

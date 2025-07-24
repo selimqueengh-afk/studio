@@ -1,68 +1,40 @@
-
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // Users can read public profiles of other users
-    // but can only write to their own user document.
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-
-      // A user can read their own friends list.
-      match /friends/{friendId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        // Rules for writing to friends subcollection are handled below
-        allow write: if false; 
+{
+  "rules": {
+    "users": {
+      // Allow all authenticated users to list and read user profiles
+      ".read": "auth != null",
+      "$uid": {
+        // Allow a user to write only to their own document
+        ".write": "auth != null && auth.uid === $uid",
+        "friends": {
+          // Allow reading own friends list
+          ".read": "auth != null && auth.uid === $uid",
+           // Allow writing to a friends list (adding a friend)
+          "$friendId": {
+             ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendId)"
+          }
+        }
       }
-    }
-
-    // Friend requests can be read by sender or receiver.
-    // They can be created by the sender.
-    // They can only be deleted as part of the acceptFriendRequest batch.
-    match /friendRequests/{requestId} {
-      allow read: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
-      allow create: if request.auth != null && request.resource.data.from == request.auth.uid;
-      allow delete: if false; // Deletion is handled by the batch write rule.
-    }
-    
-    // Batch write for accepting a friend request
-    // This allows a user to add a friend to their own list and the other user's list,
-    // and delete the request, but ONLY if a valid friend request exists.
-    match /users/{userId}/friends/{friendId} {
-      allow write: if request.auth != null && (
-        // Accepting a request sent TO me
-        (
-          request.auth.uid == userId && // I am modifying my own friends list
-          exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)) && // The request from them to me exists
-          get(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)).data.to == userId // Double check 'to' field
-        ) ||
-        // The other user is accepting a request sent FROM me
-        (
-          request.auth.uid == friendId && // The other user is the one making the change
-          exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)) && // The request from me to them exists
-          get(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)).data.from == userId // Double check 'from' field
-        )
-      );
-    }
-    
-    // Anyone can remove a friend from their own list, and this will trigger
-    // the other user to be removed from their list via a function/batch on the client.
-    match /users/{userId}/friends/{friendId} {
-        allow delete: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Chat rooms and messages
-    match /rooms/{roomId} {
-      // Allow read/write if the user is a participant in a DM
-      allow read, write: if request.auth != null && resource.data.participants[request.auth.uid] == true;
-
-      match /messages/{messageId} {
-        // Allow read if user is a participant
-        allow read: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        // Allow create if user is a participant and the message is from them
-        allow create: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true && request.resource.data.userId == request.auth.uid;
+    },
+    "friendRequests": {
+      "$requestId": {
+        // Allow reading if the user is the sender or receiver
+        ".read": "auth != null && (data.child('from').val() === auth.uid || data.child('to').val() === auth.uid)",
+        // Allow writing only if creating a new request and the user is the sender
+        ".write": "auth != null && newData.child('from').val() === auth.uid && !data.exists()",
+        ".validate": "newData.hasChildren(['from', 'to', 'createdAt'])"
+      }
+    },
+    "rooms": {
+      "$roomId": {
+        // Allow read/write if the user is a participant
+        ".read": "auth != null && resource.data.participants[auth.uid] == true",
+        ".write": "auth != null && resource.data.participants[auth.uid] == true",
+        "messages": {
+           // Allow read/write if the user is a participant of the parent room
+          ".read": "get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true",
+          ".write": "get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true"
+        }
       }
     }
   }
