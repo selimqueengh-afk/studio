@@ -95,7 +95,7 @@ export default function RoomList() {
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Odalar</h2>
+        <h2 className="text-lg font-semibold text-foreground">Odalar</h2>
         <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="ghost" size="icon">
