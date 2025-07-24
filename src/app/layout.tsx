@@ -1,7 +1,6 @@
 
 import type { Metadata } from 'next';
-import { AuthProvider } from '@/context/AuthContext';
-import { Toaster } from '@/components/ui/toaster';
+import { Providers } from '@/context/Providers';
 import './globals.css';
 import { Inter } from 'next/font/google'
 
@@ -22,10 +21,9 @@ export default function RootLayout({
       <head>
       </head>
       <body className="font-sans antialiased">
-        <AuthProvider>
+        <Providers>
           {children}
-          <Toaster />
-        </AuthProvider>
+        </Providers>
       </body>
     </html>
   );
