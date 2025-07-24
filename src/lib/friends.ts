@@ -5,8 +5,8 @@ import { doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc } from 'fir
 // Function to send a friend request
 export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   if (fromUid === toUid) return;
-  // Ensure consistent request ID ordering
-  const friendRequestDocId = `${fromUid}_${toUid}`;
+  // Use a consistent ID format to prevent duplicates
+  const friendRequestDocId = fromUid < toUid ? `${fromUid}_${toUid}` : `${toUid}_${fromUid}`;
   const requestDocRef = doc(db, 'friendRequests', friendRequestDocId);
 
   await setDoc(requestDocRef, {
@@ -20,7 +20,7 @@ export const sendFriendRequest = async (fromUid: string, toUid:string) => {
 // Function to accept a friend request
 export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const batch = writeBatch(db);
-  const requestId = `${fromUid}_${toUid}`;
+  const requestId = fromUid < toUid ? `${fromUid}_${toUid}` : `${toUid}_${fromUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
 
   // Check if the request document exists before proceeding.
@@ -44,7 +44,7 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
 
 // Function to reject a friend request
 export const rejectFriendRequest = async (fromUid: string, toUid: string) => {
-  const requestId = `${fromUid}_${toUid}`;
+  const requestId = fromUid < toUid ? `${fromUid}_${toUid}` : `${toUid}_${fromUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
   await deleteDoc(requestDocRef);
 };
