@@ -17,13 +17,18 @@ interface Reel {
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
   const [isShareSheetOpen, setShareSheetOpen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
 
   const generateMockReels = useCallback((count: number, currentReelCount: number): Reel[] => {
     const newReels: Reel[] = [];
+    // Simulate running out of reels after 50 for demo purposes
+    if (currentReelCount >= 50) {
+        setHasMore(false);
+        return [];
+    }
     for (let i = 0; i < count; i++) {
       const id = currentReelCount + i;
       newReels.push({
@@ -37,15 +42,20 @@ export default function ReelsPage() {
   }, []);
 
   const loadMoreReels = useCallback(async () => {
+    if (loading || !hasMore) return;
     setLoading(true);
+
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setReels(prev => [...prev, ...generateMockReels(5, prev.length)]);
-    setPage(prev => prev + 1);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newReels = generateMockReels(5, reels.length);
+    setReels(prev => [...prev, ...newReels]);
+
     setLoading(false);
-  }, [generateMockReels]);
+  }, [loading, hasMore, generateMockReels, reels.length]);
 
   useEffect(() => {
+    // Load initial reels
     loadMoreReels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -53,13 +63,15 @@ export default function ReelsPage() {
   const lastReelElementRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
+    
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
+      if (entries[0].isIntersecting && hasMore) {
         loadMoreReels();
       }
     });
+
     if (node) observer.current.observe(node);
-  }, [loading, loadMoreReels]);
+  }, [loading, hasMore, loadMoreReels]);
   
   const handleShareClick = (reel: Reel) => {
     setSelectedReel(reel);
@@ -100,6 +112,11 @@ export default function ReelsPage() {
       {loading && (
         <div className="h-full w-full snap-center flex items-center justify-center text-white">
           <Loader2 className="w-12 h-12 animate-spin" />
+        </div>
+      )}
+      {!hasMore && reels.length > 0 && (
+         <div className="h-24 w-full flex items-center justify-center text-white">
+            <p>Daha fazla video yok.</p>
         </div>
       )}
       {selectedReel && (
