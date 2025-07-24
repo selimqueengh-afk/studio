@@ -1,53 +1,76 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Rules for user profile documents
+
+    // Helper function to check if a user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Rules for the 'users' collection
     match /users/{userId} {
-      // Any authenticated user can read any user's profile
-      allow read; 
-      // Only the user themselves can create or update their own profile
-      allow create, update: if request.auth.uid == userId;
+      // Any authenticated user can read public user profiles
+      allow get: if isAuthenticated();
+      // A user can only create or update their own profile
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
 
       // Rules for the 'friends' subcollection within a user's document
       match /friends/{friendId} {
-        // A user can only read their own friends list
-        allow read: if request.auth.uid == userId;
-        // A user can only delete friends from their own list
-        allow delete: if request.auth.uid == userId;
+        // A user can read their own friends list
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        // A user can remove a friend from their own list
+        allow delete: if isAuthenticated() && request.auth.uid == userId;
         
-        // CRITICAL RULE FOR ACCEPTING FRIEND REQUESTS:
-        // A user can be added to another user's friend list IF AND ONLY IF:
-        // 1. A friend request exists from the target user (`userId`) to the user making the change (`friendId`).
-        // 2. The user making the change (`friendId`, who is `request.auth.uid`) is the recipient of that request.
-        allow create: if request.auth.uid == friendId && 
-                       exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId));
+        // A user can be added to another user's friends list ONLY IF:
+        // 1. The person doing the adding is accepting a friend request.
+        // 2. A friend request from the target user (`userId`) to the authenticated user (`request.auth.uid`) exists.
+        allow create: if isAuthenticated() && (
+          // Scenario 1: The user is adding a friend to their OWN list.
+          // This happens when accepting a request from {friendId}.
+          (request.auth.uid == userId && exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId))) ||
+          // Scenario 2: The system is adding the current user to the OTHER person's list.
+          // This happens when the current user accepts a request from {userId}.
+          (request.auth.uid == friendId && exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)))
+        );
       }
     }
-
-    // Rules for friend request documents
+    
+    // Rules for the 'friendRequests' collection
     match /friendRequests/{requestId} {
-       // A request can be read only by the sender or the receiver
-      allow read: if request.auth.uid == resource.data.from || request.auth.uid == resource.data.to;
+      // A user can only interact with a friend request if their UID is part of the request ID.
+      // The request ID is formatted as 'fromUid_toUid'.
+      allow read, delete: if isAuthenticated() && (request.auth.uid in requestId.split('_'));
       
-      // A request can only be created if the sender is the currently authenticated user
-      // and the request ID matches the expected format.
-      allow create: if request.auth.uid == request.resource.data.from &&
-                       requestId == request.resource.data.from + '_' + request.resource.data.to;
-
-      // A request can be deleted only by the receiver (rejecting/accepting) or the sender (canceling).
-      allow delete: if request.auth.uid == resource.data.to || request.auth.uid == resource.data.from;
+      // A user can only create a friend request if:
+      // 1. They are authenticated.
+      // 2. The 'from' field in the request matches their own UID.
+      // 3. The request document ID is correctly formatted as 'fromUid_toUid'.
+      allow create: if isAuthenticated() 
+                    && request.resource.data.from == request.auth.uid
+                    && requestId == request.resource.data.from + '_' + request.resource.data.to;
     }
 
-    // Rules for chat rooms and messages
+    // Rules for chat rooms
     match /rooms/{roomId} {
-      allow read, create: if request.auth.uid != null && resource.data.participants.hasAny([request.auth.uid]);
-      
-      match /messages/{messageId} {
-        allow read: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]);
-        allow create: if request.auth.uid == request.resource.data.userId;
-      }
+        // Allow read/write access to a room if the user is a participant.
+        // For DMs, the roomId is 'uid1_uid2', so this rule works implicitly.
+        allow read, update, delete: if isAuthenticated() && (
+                                    (resource.data.isDirectMessage == true && request.auth.uid in resource.data.participants) 
+                                    || (resource.data.isDirectMessage != true) // Or if it's a public room
+                                  );
+        allow create: if isAuthenticated(); // Allow any authenticated user to create a room.
+
+        // Rules for messages within a room
+        match /messages/{messageId} {
+            allow read, create: if isAuthenticated() && (
+                                (get(/databases/$(database)/documents/rooms/$(roomId)).data.isDirectMessage == true && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participants)
+                                || (get(/databases/$(database)/documents/rooms/$(roomId)).data.isDirectMessage != true)
+                              );
+            // Users can only update/delete their own messages (future functionality)
+            allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+        }
     }
   }
 }

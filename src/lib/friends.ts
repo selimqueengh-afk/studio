@@ -44,6 +44,7 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const requestId = `${fromUid}_${toUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
 
+  // Check if the request document exists before proceeding
   const requestSnap = await getDoc(requestDocRef);
   if (!requestSnap.exists()) {
     throw new Error("Arkadaşlık isteği bulunamadı veya zaten işlendi.");
