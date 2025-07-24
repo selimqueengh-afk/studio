@@ -17,16 +17,16 @@ export default function ChatLayout({
       <div className="flex h-screen flex-col bg-background">
         <Header />
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar
-            className="w-full max-w-xs border-r"
-            collapsible="icon"
-            variant="sidebar"
-          >
-            <ScrollArea className="h-full">
-              <RoomList />
-            </ScrollArea>
-          </Sidebar>
           <SidebarInset className="flex-1">
+             <Sidebar
+              className="w-full max-w-xs border-r"
+              collapsible="icon"
+              variant="sidebar"
+            >
+              <ScrollArea className="h-full">
+                <RoomList />
+              </ScrollArea>
+            </Sidebar>
             <main className="flex h-full flex-col">{children}</main>
           </SidebarInset>
         </div>
