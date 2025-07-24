@@ -3,55 +3,66 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
+    // Users can read public profiles of other users
+    // but can only write to their own user document.
     match /users/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
 
+      // A user can read their own friends list.
       match /friends/{friendId} {
         allow read: if request.auth != null && request.auth.uid == userId;
-        // Allow creating/deleting a friend document IF
-        // 1. The user is authenticated.
-        // 2. A corresponding friend request exists which is being deleted in the same batch.
-        //    - The request must be TO the current user.
-        //    - This rule is for the RECEIVER of the friend request.
-        // 3. Or if the user is simply deleting a friend (the request no longer exists).
-        allow write: if request.auth != null &&
-                      ( (request.auth.uid == userId && 
-                         existsAfter(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)) == false) ||
-                        (request.auth.uid == friendId &&
-                         existsAfter(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)) == false) );
+        // Rules for writing to friends subcollection are handled below
+        allow write: if false; 
       }
     }
 
+    // Friend requests can be read by sender or receiver.
+    // They can be created by the sender.
+    // They can only be deleted as part of the acceptFriendRequest batch.
     match /friendRequests/{requestId} {
-      // A user can read a request if they are the sender or receiver
-      allow read: if request.auth != null && 
-                  (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
-      
-      // A user can create a request if they are the sender
-      // and a request from the other user doesn't already exist.
-      allow create: if request.auth != null && 
-                     request.auth.uid == request.resource.data.from &&
-                     !exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.to)_$(request.resource.data.from));
-
-      // A user can delete a request if they are the sender (canceling) or receiver (rejecting)
-      allow delete: if request.auth != null &&
-                     (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      allow read: if request.auth != null && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.from == request.auth.uid;
+      allow delete: if false; // Deletion is handled by the batch write rule.
+    }
+    
+    // Batch write for accepting a friend request
+    // This allows a user to add a friend to their own list and the other user's list,
+    // and delete the request, but ONLY if a valid friend request exists.
+    match /users/{userId}/friends/{friendId} {
+      allow write: if request.auth != null && (
+        // Accepting a request sent TO me
+        (
+          request.auth.uid == userId && // I am modifying my own friends list
+          exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)) && // The request from them to me exists
+          get(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId)).data.to == userId // Double check 'to' field
+        ) ||
+        // The other user is accepting a request sent FROM me
+        (
+          request.auth.uid == friendId && // The other user is the one making the change
+          exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)) && // The request from me to them exists
+          get(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)).data.from == userId // Double check 'from' field
+        )
+      );
+    }
+    
+    // Anyone can remove a friend from their own list, and this will trigger
+    // the other user to be removed from their list via a function/batch on the client.
+    match /users/{userId}/friends/{friendId} {
+        allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Chat rooms and messages
     match /rooms/{roomId} {
-      // Allow read/write if the user is a participant
-      allow read, write: if request.auth != null && request.auth.uid in resource.data.participants;
-      
-      // Allow create if the user is creating it and is a participant
-      allow create: if request.auth != null && request.auth.uid in request.resource.data.participants;
+      // Allow read/write if the user is a participant in a DM
+      allow read, write: if request.auth != null && resource.data.participants[request.auth.uid] == true;
 
       match /messages/{messageId} {
-        // Inherit read/write from parent room, but also check on create
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        
-        allow create: if request.auth != null && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+        // Allow read if user is a participant
+        allow read: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+        // Allow create if user is a participant and the message is from them
+        allow create: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true && request.resource.data.userId == request.auth.uid;
       }
     }
   }

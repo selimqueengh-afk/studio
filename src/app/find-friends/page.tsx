@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, where, getDocs, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -29,31 +29,33 @@ export default function FindFriendsPage() {
     useEffect(() => {
         if (!currentUser) return;
 
-        // Fetch current user's friends from Firestore to filter the user list
         const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
         const unsubscribeFriends = onSnapshot(friendsQuery, (snapshot) => {
             setFriendUids(snapshot.docs.map(doc => doc.id));
         });
 
-        // Fetch pending friend requests (sent and received)
         const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', currentUser.uid));
         const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', currentUser.uid));
+        
+        let currentRequestUids: string[] = [];
 
         const unsubscribeSent = onSnapshot(sentRequestsQuery, (snapshot) => {
             const sentUids = snapshot.docs.map(doc => doc.data().to);
-            setRequestUids(prev => [...new Set([...prev, ...sentUids])]);
+            currentRequestUids = [...new Set([...currentRequestUids, ...sentUids])];
+            setRequestUids(currentRequestUids);
         });
 
         const unsubscribeReceived = onSnapshot(receivedRequestsQuery, (snapshot) => {
              const receivedUids = snapshot.docs.map(doc => doc.data().from);
-             setRequestUids(prev => [...new Set([...prev, ...receivedUids])]);
+             currentRequestUids = [...new Set([...currentRequestUids, ...receivedUids])];
+             setRequestUids(currentRequestUids);
         });
         
-        // Fetch all users from Firestore, excluding the current user
-        const usersQuery = query(collection(db, 'users'), where('uid', '!=', currentUser.uid));
-        const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+        // Fetch all users
+        const usersCol = collection(db, 'users');
+        const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
             const usersData = snapshot.docs.map(doc => doc.data() as User);
-            setUsers(usersData);
+            setUsers(usersData.filter(u => u.uid !== currentUser.uid)); // Filter out current user
             setLoading(false);
         }, (error) => {
             console.error("Error fetching users: ", error);
