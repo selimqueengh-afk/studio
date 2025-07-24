@@ -72,7 +72,7 @@ export default function ReelsPage() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore, loadMoreReels, nextPageToken]);
 
-  const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const reelRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
       const observer = new IntersectionObserver(
@@ -83,14 +83,20 @@ export default function ReelsPage() {
                   }
               });
           },
-          { threshold: 0.7 } // Trigger when 70% of the video is visible
+          { rootMargin: '0px', threshold: 0.7 } // Trigger when 70% of the video is visible
       );
 
-      reelRefs.current.forEach((ref) => {
+      const currentReelRefs = reelRefs.current;
+      currentReelRefs.forEach((ref) => {
           if (ref) observer.observe(ref);
       });
 
-      return () => observer.disconnect();
+      return () => {
+         currentReelRefs.forEach((ref) => {
+            if (ref) observer.unobserve(ref);
+        });
+        observer.disconnect();
+      };
   }, [reels]);
   
   const handleShareClick = (reel: Reel) => {
@@ -127,7 +133,7 @@ export default function ReelsPage() {
       return (
         <div 
           ref={node => {
-            reelRefs.current[index] = node;
+            if (node) reelRefs.current.set(reel.id, node);
             if (reels.length === index + 1) {
               lastReelElementRef(node as HTMLDivElement);
             }
@@ -152,6 +158,17 @@ export default function ReelsPage() {
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+          
+           <div className="absolute top-4 left-4 z-20">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white bg-black/20 hover:bg-black/40"
+                    onClick={() => router.push('/chat')}
+                >
+                    <ArrowLeft className="w-6 h-6" />
+                </Button>
+            </div>
 
            <div className="absolute bottom-16 left-4 text-white z-10 max-w-[calc(100%-5rem)] pointer-events-none">
                 <p className="font-bold">{reel.author}</p>
@@ -170,15 +187,7 @@ export default function ReelsPage() {
   }
 
   return (
-    <div className="h-full w-full max-w-md mx-auto bg-black overflow-y-auto snap-y snap-mandatory relative">
-      <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 left-4 z-20 text-white bg-black/20 hover:bg-black/40"
-          onClick={() => router.push('/chat')}
-      >
-          <ArrowLeft className="w-6 h-6" />
-      </Button>
+    <div className="h-[100svh] w-full max-w-md mx-auto bg-black overflow-y-auto snap-y snap-mandatory relative">
       {renderContent()}
       {loading && (
         <div className="h-full w-full snap-center flex items-center justify-center text-white">
@@ -200,5 +209,3 @@ export default function ReelsPage() {
     </div>
   );
 }
-
-    
