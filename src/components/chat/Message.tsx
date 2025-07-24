@@ -51,7 +51,7 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
         </div>
         <div
           className={cn(
-            'rounded-lg p-3 text-base max-w-xs md:max-w-md lg:max-w-lg break-words',
+            'rounded-lg p-3 text-lg max-w-xs md:max-w-md lg:max-w-lg break-words',
             isCurrentUser
               ? 'bg-primary text-primary-foreground'
               : 'bg-card border'
