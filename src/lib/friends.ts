@@ -6,9 +6,6 @@ import { doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc } from 'fir
 export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   if (fromUid === toUid) return;
   // Ensure consistent request ID ordering
-  const requestId = fromUid > toUid ? `${fromUid}_${toUid}` : `${toUid}_${fromUid}`;
-  
-  // Check if a request already exists to prevent duplicates. Let's use the one where 'from' is the sender.
   const friendRequestDocId = `${fromUid}_${toUid}`;
   const requestDocRef = doc(db, 'friendRequests', friendRequestDocId);
 

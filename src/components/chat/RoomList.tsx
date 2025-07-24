@@ -63,6 +63,7 @@ export default function RoomList() {
 
   useEffect(() => {
     if (!user) return;
+    setLoadingFriends(true);
     const friendsQuery = query(collection(db, `users/${user.uid}/friends`));
     
     const unsubscribe = onSnapshot(friendsQuery, async (snapshot) => {
@@ -72,7 +73,9 @@ export default function RoomList() {
         });
 
         const friendDocs = await Promise.all(friendPromises);
-        const friendsData = friendDocs.map(doc => doc.data() as Friend);
+        const friendsData = friendDocs
+            .filter(doc => doc.exists())
+            .map(doc => doc.data() as Friend);
 
         setFriends(friendsData);
         setLoadingFriends(false);
@@ -144,8 +147,8 @@ export default function RoomList() {
       
        <nav className="flex flex-col gap-1 flex-1 overflow-auto">
         {loadingFriends ? (
-          <div className="space-y-2">
-              {[...Array(5)].map((_, i) => <div key={i} className="h-8 w-full rounded-md bg-muted animate-pulse" />)}
+          <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : friends.length > 0 ? (
             friends.map((friend) => {
