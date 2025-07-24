@@ -44,12 +44,12 @@ export default function ReelsPage() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     setReels(prev => {
-        if (prev.length >= 50) {
-            setHasMore(false);
-            return prev;
-        }
         const newReels = generateMockReels(5);
-        return [...prev, ...newReels];
+        const updatedReels = [...prev, ...newReels];
+        if (updatedReels.length >= 50) {
+            setHasMore(false);
+        }
+        return updatedReels;
     });
 
     setLoading(false);
@@ -57,9 +57,7 @@ export default function ReelsPage() {
 
   useEffect(() => {
     // Load initial reels
-    if (reels.length === 0) {
-        loadMoreReels();
-    }
+    loadMoreReels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
