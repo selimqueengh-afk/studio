@@ -2,11 +2,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Loader2, PlayCircle, Send, AlertTriangle } from 'lucide-react';
+import { Loader2, PlayCircle, Send, AlertTriangle, VolumeX, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { useToast } from '@/hooks/use-toast';
 import { getYoutubeShorts, type Reel } from '@/lib/youtube';
+import { cn } from '@/lib/utils';
 
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
@@ -16,6 +17,9 @@ export default function ReelsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
   const [isShareSheetOpen, setShareSheetOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [intersectingReelId, setIntersectingReelId] = useState<string | null>(null);
+
   const observer = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
 
@@ -27,7 +31,12 @@ export default function ReelsPage() {
     try {
       const { reels: newReels, nextPageToken: newNextPageToken } = await getYoutubeShorts(token);
       
-      setReels(prev => [...prev, ...newReels]);
+      setReels(prev => {
+        const existingIds = new Set(prev.map(r => r.id));
+        const filteredNewReels = newReels.filter(r => !existingIds.has(r.id));
+        return [...prev, ...filteredNewReels];
+      });
+
       setNextPageToken(newNextPageToken);
 
       if (!newNextPageToken) {
@@ -37,13 +46,12 @@ export default function ReelsPage() {
     } catch (err: any) {
         console.error("Error fetching reels: ", err);
         setError(err.message || "Videolar yüklenirken bilinmeyen bir sorun oluştu.");
-        setHasMore(false); // Stop trying to load more if there's an error
+        setHasMore(false);
     } finally {
         setLoading(false);
     }
   }, [loading, hasMore]);
 
-  // Initial load
   useEffect(() => {
     loadMoreReels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -61,6 +69,27 @@ export default function ReelsPage() {
 
     if (node) observer.current.observe(node);
   }, [loading, hasMore, loadMoreReels, nextPageToken]);
+
+  const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+      const observer = new IntersectionObserver(
+          (entries) => {
+              entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                      setIntersectingReelId(entry.target.getAttribute('data-reel-id'));
+                  }
+              });
+          },
+          { threshold: 0.7 } // Trigger when 70% of the video is visible
+      );
+
+      reelRefs.current.forEach((ref) => {
+          if (ref) observer.observe(ref);
+      });
+
+      return () => observer.disconnect();
+  }, [reels]);
   
   const handleShareClick = (reel: Reel) => {
     setSelectedReel(reel);
@@ -89,33 +118,53 @@ export default function ReelsPage() {
       );
     }
     
-    return reels.map((reel, index) => (
-      <div 
-        ref={reels.length === index + 1 ? lastReelElementRef : null}
-        key={reel.id + index} 
-        className="h-full w-full snap-center relative flex items-center justify-center bg-black"
-      >
-        <img
-          src={reel.thumbnailUrl}
-          alt={reel.description || `Reel from ${reel.author}`}
-          className="object-contain w-full h-full"
-          data-ai-hint="youtube short"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
-        <a href={reel.videoUrl} target="_blank" rel="noopener noreferrer" className="absolute text-white z-10 flex flex-col items-center justify-center cursor-pointer">
-           <PlayCircle className="w-24 h-24 text-white/70 hover:text-white/90 transition-colors" />
-        </a>
-         <div className="absolute bottom-16 left-4 text-white z-10 max-w-[calc(100%-5rem)]">
-              <p className="font-bold">{reel.author}</p>
-              <p className="text-sm truncate">{reel.description}</p>
-          </div>
-          <div className="absolute bottom-16 right-4 flex flex-col gap-4 z-10">
-               <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/20 hover:bg-black/40" onClick={() => handleShareClick(reel)}>
-                  <Send className="w-7 h-7" />
-               </Button>
-          </div>
-      </div>
-    ))
+    return reels.map((reel, index) => {
+      const isPlaying = intersectingReelId === reel.id;
+      const embedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=${isPlaying ? 1 : 0}&mute=${isMuted ? 1 : 0}&controls=0&showinfo=0&loop=1&playlist=${reel.id}&playsinline=1`;
+      
+      return (
+        <div 
+          ref={node => {
+            reelRefs.current[index] = node;
+            if (reels.length === index + 1) {
+              lastReelElementRef(node as HTMLDivElement);
+            }
+          }}
+          key={reel.id} 
+          data-reel-id={reel.id}
+          className="h-full w-full snap-center relative flex items-center justify-center bg-black overflow-hidden"
+        >
+          <iframe
+            src={embedUrl}
+            title={reel.description}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className={cn("absolute top-0 left-0 w-full h-full transition-opacity duration-500", isPlaying ? "opacity-100" : "opacity-0")}
+          ></iframe>
+           <img
+            src={reel.thumbnailUrl}
+            alt={reel.description || `Reel from ${reel.author}`}
+            className={cn("object-cover w-full h-full transition-opacity duration-500", isPlaying ? 'opacity-0' : 'opacity-100')}
+            data-ai-hint="youtube short"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+
+           <div className="absolute bottom-16 left-4 text-white z-10 max-w-[calc(100%-5rem)] pointer-events-none">
+                <p className="font-bold">{reel.author}</p>
+                <p className="text-sm truncate">{reel.description}</p>
+            </div>
+            <div className="absolute bottom-16 right-4 flex flex-col gap-4 z-10">
+                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/20 hover:bg-black/40" onClick={() => setIsMuted(prev => !prev)}>
+                   {isMuted ? <VolumeX className="w-7 h-7" /> : <Volume2 className="w-7 h-7" />}
+                 </Button>
+                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/20 hover:bg-black/40" onClick={() => handleShareClick(reel)}>
+                    <Send className="w-7 h-7" />
+                 </Button>
+            </div>
+        </div>
+    )})
   }
 
   return (

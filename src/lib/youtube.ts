@@ -12,7 +12,7 @@ export interface Reel {
 }
 
 // TEMPORARY FIX: Using the key directly to bypass environment variable issues.
-// Replace this with your actual API key.
+// This is not recommended for production.
 const YOUTUBE_API_KEY = "AIzaSyCqEzmYFkSe2Ef5LbC-LLY6olXDmydZ-ek";
 
 const youtube = google.youtube({
@@ -23,19 +23,25 @@ const youtube = google.youtube({
 export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Reel[], nextPageToken?: string }> {
   try {
     if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === "YOUR_API_KEY_HERE") {
-      throw new Error("YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin.");
+      throw new Error("YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin veya kodu doğrudan düzenleyin.");
     }
     
     const response = await youtube.search.list({
       part: ['snippet'],
-      q: '#shorts #funny #viral',
+      q: 'komik türk videoları #shorts',
       type: ['video'],
       maxResults: 10,
       videoDuration: 'short',
+      regionCode: 'TR',
+      relevanceLanguage: 'tr',
       pageToken: pageToken,
     });
 
     const searchResults = response.data.items || [];
+    
+    if (!searchResults.length) {
+      return { reels: [], nextPageToken: undefined };
+    }
 
     const reels: Reel[] = searchResults.map(item => ({
       id: item.id?.videoId || '',
@@ -50,13 +56,13 @@ export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Ree
         nextPageToken: response.data.nextPageToken || undefined,
     };
   } catch (error: any) {
-    console.error('Error fetching YouTube shorts:', error.message);
-    if (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID')) {
-        throw new Error("Sağlanan YouTube API anahtarı geçersiz. Lütfen anahtarınızı kontrol edin.");
+    console.error('Error fetching YouTube shorts:', JSON.stringify(error, null, 2));
+    if (error.code === 403 || (error.errors && error.errors[0]?.reason.includes('quotaExceeded'))) {
+       throw new Error("YouTube API kotası aşıldı. Lütfen Google Cloud Console'u kontrol edin veya daha sonra tekrar deneyin.");
     }
-     if (error.code === 403 || error.message.includes('quota')) {
-      throw new Error("YouTube API kotası aşıldı veya API etkinleştirilmemiş. Lütfen Google Cloud Console'u kontrol edin.");
+     if (error.code === 400 || (error.errors && error.errors[0]?.reason.includes('keyInvalid'))) {
+       throw new Error("Sağlanan YouTube API anahtarı geçersiz. Lütfen anahtarınızı kontrol edin.");
     }
-    throw new Error('YouTube videoları getirilirken bir hata oluştu.');
+    throw new Error('YouTube videoları getirilirken genel bir hata oluştu.');
   }
 }
