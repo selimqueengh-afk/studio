@@ -1,0 +1,45 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    // Allow users to read any profile (for user search)
+    // Allow users to create their own profile
+    // Allow users to update their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth.uid == userId;
+
+      // Friends subcollection
+      // Allow users to read/write their own friends list
+      match /friends/{friendId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+    }
+
+    // Friend Requests collection
+    // Allow users to create a request (send)
+    // Allow users to read requests sent to them
+    // Allow users to delete a request (reject/accept)
+    match /friendRequests/{requestId} {
+      allow read, delete: if request.auth.uid == resource.data.to;
+      allow create: if request.auth.uid == request.resource.data.from;
+    }
+    
+    // Rooms collection for DMs
+    // Allow read/write only if the user is a participant
+    match /rooms/{roomId} {
+      allow read, write: if request.auth.uid in resource.data.participants;
+
+      // Messages subcollection
+      // Allow read if user is a participant in the parent room
+      // Allow create if the user is the sender and a participant
+      match /messages/{messageId} {
+        allow read: if get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]);
+        allow create: if request.auth.uid == request.resource.data.userId && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]);
+      }
+    }
+  }
+}

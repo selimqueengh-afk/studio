@@ -1,15 +1,26 @@
-import { MessageSquare } from 'lucide-react';
+
+"use client";
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Users, MessageSquare } from 'lucide-react';
 
 export default function ChatPage() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 bg-background text-center">
-      <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-secondary">
-        <MessageSquare className="h-12 w-12 text-muted-foreground" />
+    <div className="flex h-full flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+      <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <MessageSquare className="h-12 w-12" />
       </div>
-      <h2 className="text-2xl font-bold">Sohbet Odasına Hoş Geldiniz!</h2>
-      <p className="text-muted-foreground">
-        Başlamak için kenar çubuğundan bir oda seçin veya yeni bir tane oluşturun.
+      <h2 className="text-2xl font-bold">Arkadaşlarınla Sohbet Et</h2>
+      <p className="max-w-md text-muted-foreground">
+        Sohbete başlamak için kenar çubuğundan bir arkadaşını seç. Henüz arkadaşın yok mu? Yeni arkadaşlar bul ve ekle!
       </p>
+      <Button asChild className="mt-4">
+        <Link href="/find-friends">
+          <Users className="mr-2 h-4 w-4" />
+          Arkadaş Bul
+        </Link>
+      </Button>
     </div>
   );
 }

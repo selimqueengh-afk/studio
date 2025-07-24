@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/context/AuthContext';
@@ -11,10 +12,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function UserNav() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
 
   if (!user) {
     return null;
@@ -48,6 +51,15 @@ export default function UserNav() {
             </p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push(`/profile/${user.uid}`)}>
+          <UserIcon className="mr-2 h-4 w-4" />
+          <span>Profil</span>
+        </DropdownMenuItem>
+         <DropdownMenuItem onClick={() => router.push('/find-friends')}>
+          <Users className="mr-2 h-4 w-4" />
+          <span>Arkadaş Bul</span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut}>
           <LogOut className="mr-2 h-4 w-4" />

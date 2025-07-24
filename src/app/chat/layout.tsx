@@ -1,3 +1,4 @@
+
 import Header from '@/components/layout/Header';
 import RoomList from '@/components/chat/RoomList';
 import {
@@ -26,7 +27,7 @@ export default function ChatLayout({
               <RoomList />
             </ScrollArea>
           </Sidebar>
-          <main className="flex-1 overflow-x-hidden">{children}</main>
+          <main className="flex-1 overflow-x-hidden bg-secondary/30">{children}</main>
         </div>
       </div>
     </SidebarProvider>
