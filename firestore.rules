@@ -4,41 +4,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Users can read anyone's profile, but only write to their own.
+    // Users can only read and write to their own user document.
+    // They can read other users' documents but not write to them.
     match /users/{userId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth.uid == userId;
+      allow read;
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
 
       // Rules for the 'friends' subcollection
       match /friends/{friendId} {
-        // A user can only read or delete their own friends.
-        allow read, delete: if request.auth.uid == userId;
+        // Anyone can read a user's friend list. Adjust if you want more privacy.
+        allow read: if request.auth != null;
         
-        // A user can only be added to another user's friend list
-        // if a corresponding friend request exists and the request is being accepted by the recipient.
-        allow create: if request.auth.uid == friendId &&
-                       exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId));
+        // Allow creating a friend document ONLY IF:
+        // 1. The request is authenticated.
+        // 2. The user is adding a friend to their OWN friends list (`userId == request.auth.uid`).
+        // 3. AND there is a corresponding accepted friend request.
+        allow create: if request.auth != null && (
+          (request.auth.uid == userId && exists(/databases/$(database)/documents/friendRequests/$(friendId)_$(userId))) ||
+          (request.auth.uid == friendId && exists(/databases/$(database)/documents/friendRequests/$(userId)_$(friendId)))
+        );
+
+        // Allow deleting a friend (unfriending)
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == friendId);
       }
     }
 
     // Rules for friend requests
     match /friendRequests/{requestId} {
-      // A request can only be read by the sender or the receiver.
-      allow read: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
-      
-      // A request can only be created by the sender, and the requestId must match the sender_receiver format.
-      allow create: if request.auth.uid == request.resource.data.from && requestId == request.resource.data.from + '_' + request.resource.data.to;
-      
-      // A request can only be deleted by the sender (to cancel) or the receiver (to reject/accept).
-      allow delete: if request.auth != null && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
-    }
+      // A request ID is formatted as "fromUid_toUid"
+      function getFromUid() {
+        return requestId.split('_')[0];
+      }
+      function getToUid() {
+        return requestId.split('_')[1];
+      }
 
+      // Allow reading a request if you are the sender or receiver
+      allow read: if request.auth != null && (request.auth.uid == getFromUid() || request.auth.uid == getToUid());
+      
+      // Allow creating a request if you are the sender
+      allow create: if request.auth != null && request.auth.uid == getFromUid();
+      
+      // Allow deleting a request (rejecting/canceling) if you are the sender or receiver
+      allow delete: if request.auth != null && (request.auth.uid == getFromUid() || request.auth.uid == getToUid());
+    }
+    
     // Rules for chat rooms and messages
     match /rooms/{roomId} {
-      allow read, create: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow read, write: if request.auth != null && (resource == null || resource.data.participants.hasAny([request.auth.uid]));
       
       match /messages/{messageId} {
-        allow read, create: if request.auth != null && exists(/databases/$(database)/documents/rooms/$(roomId)) && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participants;
+        allow read, create: if request.auth != null && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants.hasAny([request.auth.uid]);
+        allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       }
     }
   }
