@@ -28,13 +28,15 @@ export default function BottomNav() {
                 {navItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     return (
-                        <Link key={item.href} href={item.href} legacyBehavior>
-                            <a className="flex flex-col items-center justify-center w-full h-full">
-                                <item.icon className={cn("h-6 w-6 mb-1 transition-colors", isActive ? 'text-primary' : 'text-muted-foreground')} />
-                                <span className={cn("text-xs transition-colors",  isActive ? 'text-primary font-semibold' : 'text-muted-foreground')}>
-                                    {item.label}
-                                </span>
-                            </a>
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="flex flex-col items-center justify-center w-full h-full"
+                        >
+                            <item.icon className={cn("h-6 w-6 mb-1 transition-colors", isActive ? 'text-primary' : 'text-muted-foreground')} />
+                            <span className={cn("text-xs transition-colors",  isActive ? 'text-primary font-semibold' : 'text-muted-foreground')}>
+                                {item.label}
+                            </span>
                         </Link>
                     );
                 })}
