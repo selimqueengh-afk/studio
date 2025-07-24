@@ -18,6 +18,10 @@ const youtube = google.youtube({
 
 export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Reel[], nextPageToken?: string }> {
   try {
+    if (!process.env.YOUTUBE_API_KEY) {
+      throw new Error("YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin.");
+    }
+    
     const response = await youtube.search.list({
       part: ['snippet'],
       q: '#shorts #funny #viral', // Search query for popular, funny, viral shorts
@@ -41,11 +45,14 @@ export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Ree
         reels,
         nextPageToken: response.data.nextPageToken || undefined,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching YouTube shorts:', error);
     // Check if the error is due to a missing API key
-    if (error.message.includes('API key not valid')) {
-        throw new Error("YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin.");
+    if (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID')) {
+        throw new Error("YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanızı ve anahtarınızı kontrol edin.");
+    }
+     if (error.code === 403) {
+      throw new Error("YouTube API kotası aşıldı veya API etkinleştirilmemiş. Lütfen Google Cloud Console'u kontrol edin.");
     }
     throw new Error('YouTube videoları getirilirken bir hata oluştu.');
   }
