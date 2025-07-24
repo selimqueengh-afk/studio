@@ -9,7 +9,7 @@ export default function Header() {
       <div className="flex items-center gap-4">
         <SidebarTrigger className="md:hidden" />
         <Link href="/chat" className="flex items-center gap-2 text-lg font-semibold md:text-base">
-          <MessageSquare className="h-6 w-6 text-primary" />
+          <MessageSquare className="h-6 w-10 text-primary" />
           <span className="font-bold">Sohbet Odası</span>
         </Link>
       </div>
