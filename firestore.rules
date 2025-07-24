@@ -47,10 +47,11 @@ service cloud.firestore {
     }
     
     // Rules for reels collection
-    // Any signed-in user can read the reels
     match /reels/{reelId} {
-        allow read: if isSignedIn();
-        allow write: if false; // Nobody can write directly, only through backend/functions
+      // Any signed-in user can read reels
+      allow read: if isSignedIn();
+      // You might want to restrict write access later, e.g., only for admins or specific users
+      allow write: if isSignedIn(); 
     }
 
     // Rules for rooms and messages
