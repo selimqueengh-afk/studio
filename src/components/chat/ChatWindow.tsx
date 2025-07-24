@@ -8,6 +8,8 @@ import {
   onSnapshot,
   doc,
   getDoc,
+  deleteDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +17,10 @@ import Message from './Message';
 import MessageInput from './MessageInput';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
+import { Button } from '../ui/button';
+import { Loader2, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface MessageData {
   id: string;
@@ -27,6 +33,7 @@ interface MessageData {
 
 interface RoomData {
   name: string;
+  creatorId: string;
 }
 
 export default function ChatWindow({ roomId }: { roomId: string }) {
@@ -34,13 +41,18 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRoom = async () => {
       const roomDoc = await getDoc(doc(db, 'rooms', roomId));
       if (roomDoc.exists()) {
         setRoom(roomDoc.data() as RoomData);
+      } else {
+        router.push('/chat');
       }
     };
     fetchRoom();
@@ -56,10 +68,13 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
       })) as MessageData[];
       setMessages(msgs);
       setLoading(false);
+    }, (error) => {
+      console.error("Error fetching messages: ", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [roomId]);
+  }, [roomId, router]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -71,6 +86,36 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
         }
     }
   }, [messages]);
+
+  const handleDeleteRoom = async () => {
+    if (!room || room.creatorId !== user?.uid) return;
+    setIsDeleting(true);
+    try {
+      // Delete all messages in the room
+      const messagesQuery = query(collection(db, 'rooms', roomId, 'messages'));
+      const messagesSnapshot = await getDoc(messagesQuery as any); // Firebase v9 issue with getDocs on query
+      const batch = writeBatch(db);
+      messagesSnapshot.docs.forEach((doc:any) => {
+          batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      // Delete the room itself
+      await deleteDoc(doc(db, 'rooms', roomId));
+      
+      toast({ title: 'Başarılı', description: 'Oda ve tüm mesajlar silindi.' });
+      router.push('/chat');
+    } catch (error) {
+      console.error("Error deleting room: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'Oda silinemedi. Lütfen tekrar deneyin.',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
 
   if (loading) {
@@ -100,8 +145,14 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-       <header className="flex items-center h-16 shrink-0 border-b bg-card px-6">
+       <header className="flex items-center justify-between h-16 shrink-0 border-b bg-card px-6">
         <h2 className="text-lg font-semibold">{room?.name || 'Sohbet'}</h2>
+        {user && room && user.uid === room.creatorId && (
+          <Button variant="destructive" size="icon" onClick={handleDeleteRoom} disabled={isDeleting}>
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            <span className="sr-only">Odayı Sil</span>
+          </Button>
+        )}
       </header>
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full" ref={scrollAreaRef}>

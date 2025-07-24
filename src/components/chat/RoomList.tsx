@@ -26,14 +26,17 @@ import { Plus, Hash, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/ui/sidebar';
+import { useAuth } from '@/context/AuthContext';
 
 
 interface Room {
   id: string;
   name: string;
+  creatorId: string;
 }
 
 export default function RoomList() {
+  const { user } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRoomName, setNewRoomName] = useState('');
@@ -51,7 +54,7 @@ export default function RoomList() {
       (snapshot) => {
         const roomsData = snapshot.docs.map((doc) => ({
           id: doc.id,
-          name: doc.data().name,
+          ...(doc.data() as Omit<Room, 'id'>)
         }));
         setRooms(roomsData);
         setLoading(false);
@@ -70,12 +73,13 @@ export default function RoomList() {
   }, [toast]);
 
   const handleCreateRoom = async () => {
-    if (newRoomName.trim() === '') return;
+    if (newRoomName.trim() === '' || !user) return;
     setCreatingRoom(true);
     try {
       await addDoc(collection(db, 'rooms'), {
         name: newRoomName,
         createdAt: serverTimestamp(),
+        creatorId: user.uid,
       });
       setNewRoomName('');
       setDialogOpen(false);
