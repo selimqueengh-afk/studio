@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { doc, setDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 // Function to send a friend request
-export const sendFriendRequest = async (fromUid: string, toUid: string) => {
+export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   if (fromUid === toUid) return;
   const requestId = `${fromUid}_${toUid}`;
   await setDoc(doc(db, 'friendRequests', requestId), {
@@ -25,7 +25,7 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const user2FriendRef = doc(db, 'users', toUid, 'friends', fromUid);
   batch.set(user2FriendRef, { since: serverTimestamp() });
 
-  // Delete the friend request
+  // Delete the friend request - this was the source of the bug
   const requestId = `${fromUid}_${toUid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
