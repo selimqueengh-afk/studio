@@ -175,7 +175,7 @@ export default function ReelsPage() {
           variant="ghost"
           size="icon"
           className="absolute top-4 left-4 z-20 text-white bg-black/20 hover:bg-black/40"
-          onClick={() => router.back()}
+          onClick={() => router.push('/chat')}
       >
           <ArrowLeft className="w-6 h-6" />
       </Button>
