@@ -113,7 +113,10 @@ export default function RoomList() {
             name: `DM with ${selectedFriend.displayName}`,
             createdAt: serverTimestamp(),
             isDirectMessage: true,
-            participants: [currentUserUid, selectedUserUid],
+            participants: {
+              [currentUserUid]: true,
+              [selectedUserUid]: true,
+            },
             participantNames: {
                 [currentUserUid]: user.displayName,
                 [selectedUserUid]: selectedFriend.displayName

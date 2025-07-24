@@ -39,7 +39,7 @@ interface RoomData {
   name: string;
   creatorId: string;
   isDirectMessage?: boolean;
-  participants?: string[];
+  participants?: { [key: string]: boolean };
   participantNames?: { [key: string]: string };
   participantPhotos?: { [key: string]: string | null };
 }
@@ -53,7 +53,7 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   const { toast } = useToast();
   const router = useRouter();
 
-  const otherParticipantId = room?.participants?.find(p => p !== user?.uid);
+  const otherParticipantId = room?.participants ? Object.keys(room.participants).find(p => p !== user?.uid) : undefined;
   const otherParticipantName = otherParticipantId ? room?.participantNames?.[otherParticipantId] : null;
   const otherParticipantPhoto = otherParticipantId ? room?.participantPhotos?.[otherParticipantId] : null;
 
@@ -63,7 +63,7 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
       const roomDoc = await getDoc(doc(db, 'rooms', roomId));
       if (roomDoc.exists()) {
         const roomData = roomDoc.data() as RoomData;
-        if (roomData.isDirectMessage && !roomData.participants?.includes(user?.uid || '')) {
+        if (roomData.isDirectMessage && !roomData.participants?.[user?.uid || '']) {
              toast({ variant: 'destructive', title: 'Yetkisiz', description: 'Bu sohbete erişim izniniz yok.'});
              router.push('/chat');
              return;
@@ -180,4 +180,3 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
     </div>
   );
 }
-
