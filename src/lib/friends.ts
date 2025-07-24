@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { doc, setDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
 
 // Function to send a friend request
 export const sendFriendRequest = async (fromUid: string, toUid:string) => {
@@ -25,9 +25,8 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
   const user2FriendRef = doc(db, 'users', toUid, 'friends', fromUid);
   batch.set(user2FriendRef, { since: serverTimestamp() });
 
-  // Delete the friend request - this was the source of the bug
-  const requestId = `${fromUid}_${toUid}`;
-  const requestDocRef = doc(db, 'friendRequests', requestId);
+  // Delete the friend request
+  const requestDocRef = doc(db, 'friendRequests', `${fromUid}_${toUid}`);
   batch.delete(requestDocRef);
 
   await batch.commit();
@@ -36,7 +35,16 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
 // Function to reject a friend request
 export const rejectFriendRequest = async (fromUid: string, toUid: string) => {
   const requestId = `${fromUid}_${toUid}`;
-  await deleteDoc(doc(db, 'friendRequests', requestId));
+  const requestDocRef = doc(db, 'friendRequests', requestId);
+  
+  // Check if the request document exists before trying to delete it
+  const docSnap = await getDoc(requestDocRef);
+  if (docSnap.exists()) {
+    await deleteDoc(requestDocRef);
+  } else {
+    // This handles cases where the request might have been cancelled by the sender
+    console.log("Friend request document not found, it might have been cancelled.");
+  }
 };
 
 
