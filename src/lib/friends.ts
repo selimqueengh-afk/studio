@@ -30,7 +30,6 @@ export const sendFriendRequest = async (fromUid: string, toUid:string) => {
   await setDoc(requestDocRef, {
     from: fromUid,
     to: toUid,
-    status: 'pending',
     createdAt: serverTimestamp(),
   });
 };
