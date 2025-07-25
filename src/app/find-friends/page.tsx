@@ -111,6 +111,7 @@ export default function FindFriendsPage() {
             const fromUser = {
                 uid: currentUser.uid,
                 displayName: currentUser.displayName,
+                email: currentUser.email || '',
                 photoURL: currentUser.photoURL,
             };
             await sendFriendRequest(fromUser, friend);

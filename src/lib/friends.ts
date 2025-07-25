@@ -15,6 +15,7 @@ import {
 interface UserInfo {
   uid: string;
   displayName: string | null;
+  email: string;
   photoURL?: string | null;
 }
 
@@ -44,16 +45,17 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
     );
   }
 
-  // Ensure data is not undefined before setting
   const fromData = {
     uid: fromUser.uid,
     displayName: fromUser.displayName || null,
+    email: fromUser.email,
     photoURL: fromUser.photoURL || null,
   };
 
   const toData = {
     uid: toUser.uid,
     displayName: toUser.displayName || null,
+    email: toUser.email,
     photoURL: toUser.photoURL || null,
   };
 
@@ -74,24 +76,23 @@ export const acceptFriendRequest = async (
   const friendDataForCurrentUser = {
     uid: fromUser.uid,
     displayName: fromUser.displayName || null,
+    email: fromUser.email,
     photoURL: fromUser.photoURL || null,
   };
 
   const currentUserDataForFriend = {
     uid: toUser.uid,
     displayName: toUser.displayName || null,
+    email: toUser.email,
     photoURL: toUser.photoURL || null,
   };
 
-  // Add friend to current user's friend list
   const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
   batch.set(toFriendRef, friendDataForCurrentUser);
 
-  // Add current user to friend's friend list
   const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
   batch.set(fromFriendRef, currentUserDataForFriend);
 
-  // Delete the friend request
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
 

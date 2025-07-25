@@ -20,6 +20,7 @@ import { acceptFriendRequest, rejectFriendRequest } from '@/lib/friends';
 interface UserInfo {
     uid: string;
     displayName: string;
+    email: string;
     photoURL: string | null;
 }
 
@@ -68,11 +69,13 @@ export default function FriendRequestBell() {
       const fromUser = { 
         uid: request.from.uid, 
         displayName: request.from.displayName || 'Bilinmeyen Kullanıcı',
+        email: request.from.email || '',
         photoURL: request.from.photoURL || null
       };
       const toUser = { 
         uid: user.uid, 
         displayName: user.displayName || 'Bilinmeyen Kullanıcı',
+        email: user.email || '',
         photoURL: user.photoURL || null
       };
 
