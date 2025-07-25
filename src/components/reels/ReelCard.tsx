@@ -6,45 +6,40 @@ import { cn } from "@/lib/utils";
 
 interface ReelCardProps {
     reel: StaticReel;
-    isShared?: boolean; // This prop can remain for compatibility but won't be used here.
+    isShared?: boolean;
 }
 
 export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
-    // If for any reason the reel data is missing, prevent a crash.
-    if (!reel || !reel.videoUrl) {
+
+    if (isShared) {
+        // Shared reel in a chat message
         return (
-            <div className="w-full h-full bg-black flex items-center justify-center text-white">
-                Video Yüklenemedi
+            <div className="relative aspect-video w-64 rounded-lg border bg-black overflow-hidden">
+                 <video
+                    src={reel.videoUrl}
+                    controls
+                    preload="metadata"
+                    className="w-full h-full object-contain"
+                >
+                    Tarayıcınız video etiketini desteklemiyor.
+                </video>
             </div>
-        );
+        )
     }
 
-    // This is the most basic and failsafe way to render a video in HTML.
-    // We are giving full control to the browser.
+    // Fullscreen reel on the reels page
     return (
-        <div className={cn(
-            "relative w-full h-full bg-black", 
-            isShared ? 'aspect-video w-64 rounded-lg border' : ''
-        )}>
+        <div className="absolute inset-0 w-full h-full bg-black">
             <video
-                key={reel.id} // Adding a key to help React differentiate videos
                 src={reel.videoUrl}
-                controls // Shows the browser's default play/pause/volume controls. This is the most reliable way.
+                controls
                 loop
                 playsInline
-                preload="metadata" // This helps show the first frame as a poster instead of a black screen.
-                className="w-full h-full object-contain" // Using object-contain to ensure the whole video is visible.
+                preload="auto"
+                className="w-full h-full object-contain"
             >
                 Tarayıcınız video etiketini desteklemiyor.
             </video>
-             {!isShared && (
-                 <div className="absolute bottom-4 left-4 text-white max-w-[calc(100%-4rem)] p-4 pointer-events-none">
-                    <div className="bg-black/30 p-2 rounded-lg">
-                        <p className="font-bold text-lg truncate drop-shadow-lg">{reel.author}</p>
-                        <p className="text-sm truncate drop-shadow-md">{reel.description}</p>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

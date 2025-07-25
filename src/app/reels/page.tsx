@@ -43,6 +43,14 @@ export default function ReelsPage() {
 
       {reels.map((reel) => (
         <section key={reel.id} className="relative h-screen w-full snap-start flex items-center justify-center">
+          <ReelCard reel={reel} />
+          {/* UI Elements */}
+           <div className="absolute bottom-4 left-4 z-10 text-white max-w-[calc(100%-6rem)] p-2 pointer-events-none">
+              <div className="bg-black/30 p-2 rounded-lg">
+                  <p className="font-bold text-lg truncate drop-shadow-lg">{reel.author}</p>
+                  <p className="text-sm truncate drop-shadow-md">{reel.description}</p>
+              </div>
+          </div>
           <div className="absolute bottom-20 right-2 z-20 flex flex-col gap-4">
               <Button variant="ghost" size="icon" className="text-white flex flex-col h-auto gap-1">
                   <ThumbsUp className="w-8 h-8"/>
@@ -60,7 +68,6 @@ export default function ReelsPage() {
                   <MoreVertical className="w-8 h-8"/>
               </Button>
           </div>
-          <ReelCard reel={reel} />
         </section>
       ))}
       
@@ -74,3 +81,4 @@ export default function ReelsPage() {
     </div>
   );
 }
+
