@@ -21,29 +21,10 @@ interface UserInfo {
 
 export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) => {
   const requestId = `${fromUser.uid}_${toUser.uid}`;
-  const reverseRequestId = `${toUser.uid}_${fromUser.uid}`;
-
   const requestDocRef = doc(db, 'friendRequests', requestId);
-  const reverseRequestDocRef = doc(db, 'friendRequests', reverseRequestId);
-  const friendDocRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
 
-  const [requestSnap, reverseRequestSnap, friendSnap] = await Promise.all([
-    getDoc(requestDocRef),
-    getDoc(reverseRequestDocRef),
-    getDoc(friendDocRef),
-  ]);
-
-  if (friendSnap.exists()) {
-    throw new Error('Bu kullanıcı zaten arkadaşınız.');
-  }
-  if (requestSnap.exists()) {
-    throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
-  }
-  if (reverseRequestSnap.exists()) {
-    throw new Error(
-      'Bu kullanıcı size zaten bir istek göndermiş. Lütfen isteklerinizi kontrol edin.'
-    );
-  }
+  // Önceki kontrolleri (getDoc, if blokları) kaldırdık.
+  // Direkt olarak arkadaşlık isteğini oluşturuyoruz.
 
   const fromData = {
     uid: fromUser.uid,
