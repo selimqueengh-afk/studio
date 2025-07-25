@@ -8,9 +8,11 @@
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
     "match": "/users/{userId}",
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
+    "match": "/friendRequests/{requestId}",
+    "allow": "read, create: if isSignedIn(); delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);",
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
-    "match": "/messages/{messageId}",
-    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(request.resource.data.roomId || roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
+    "match": "/rooms/{roomId}/messages/{messageId}",
+    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
   }
 }
