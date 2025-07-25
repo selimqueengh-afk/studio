@@ -44,6 +44,7 @@ export default function RoomList() {
         return;
     }
     
+    setLoadingFriends(true);
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
 
     const unsubscribe = onSnapshot(friendsQuery, (snapshot) => {
@@ -64,7 +65,7 @@ export default function RoomList() {
     });
 
     return () => unsubscribe();
-  }, [toast, user, authLoading]);
+  }, [user, authLoading, toast]);
 
 
   const handleSelectFriendForDM = async (selectedFriend: Friend) => {
