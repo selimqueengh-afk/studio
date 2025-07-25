@@ -28,12 +28,10 @@ export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Ree
     
     const response = await youtube.search.list({
       part: ['snippet'],
-      q: 'komik türk videoları #shorts',
+      q: '"giga chad" | "sigma" | "roblox funny" | "funny shorts" #shorts',
       type: ['video'],
       maxResults: 10,
       videoDuration: 'short',
-      regionCode: 'TR',
-      relevanceLanguage: 'tr',
       pageToken: pageToken,
     });
 
