@@ -14,7 +14,7 @@
     "allow": "read, list: if isUser(userId); create, delete: if isUser(userId);",
 
     "match": "/friendRequests/{requestId}",
-    "allow": "read, list: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to); create: if isSignedIn() && request.auth.uid == request.resource.data.from; delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);",
+    "allow": "read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid); create: if isSignedIn() && request.resource.data.from == request.auth.uid; delete: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);",
     
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
