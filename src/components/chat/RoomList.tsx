@@ -34,16 +34,13 @@ export default function RoomList() {
 
 
   useEffect(() => {
-    if (authLoading) {
-      setLoadingFriends(true);
+    // If auth is loading, or there's no user, don't do anything yet.
+    if (authLoading || !user) {
+      setLoadingFriends(true); // Keep showing loader
       return;
     }
-    if (!user) {
-        setLoadingFriends(false);
-        setFriends([]);
-        return;
-    }
     
+    // Once we have a user, start fetching friends.
     setLoadingFriends(true);
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
 
@@ -53,7 +50,7 @@ export default function RoomList() {
             ...doc.data()
         })) as Friend[];
         setFriends(friendsList);
-        setLoadingFriends(false);
+        setLoadingFriends(false); // We have a result, stop loading.
     }, (error) => {
         console.error("Error fetching friends: ", error);
         toast({
