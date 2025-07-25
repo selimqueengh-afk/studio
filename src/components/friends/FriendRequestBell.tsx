@@ -23,7 +23,7 @@ interface FriendRequest {
   fromName: string;
   fromPhoto: string | null;
   to: string;
-  toName: string;
+  toName: string | null;
   toPhoto: string | null;
 }
 
@@ -62,20 +62,19 @@ export default function FriendRequestBell() {
     const fromUser = { 
         uid: request.from, 
         displayName: request.fromName, 
-        email: '', // Email is not needed for this action
         photoURL: request.fromPhoto || undefined 
     };
     const toUser = { 
-        uid: request.to, 
-        displayName: request.toName || user.displayName || '', 
-        email: user.email || '', 
-        photoURL: request.toPhoto || user.photoURL || undefined 
+        uid: user.uid, 
+        displayName: user.displayName, 
+        photoURL: user.photoURL || undefined
     };
 
     try {
       await acceptFriendRequest(request.id, fromUser, toUser);
       toast({ title: 'Başarılı', description: `${request.fromName} artık arkadaşın.` });
     } catch (error: any) {
+      console.error("Accept error:", error);
       toast({ variant: 'destructive', title: 'Hata', description: error.message || 'İstek kabul edilemedi.' });
     } finally {
       setActionLoading(null);
@@ -88,6 +87,7 @@ export default function FriendRequestBell() {
       await rejectFriendRequest(requestId);
       toast({ title: 'Reddedildi', description: 'Arkadaşlık isteği reddedildi.' });
     } catch (error: any) {
+      console.error("Reject error:", error);
       toast({ variant: 'destructive', title: 'Hata', description: error.message || 'İstek reddedilemedi.' });
     } finally {
       setActionLoading(null);

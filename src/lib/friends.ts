@@ -14,7 +14,7 @@ import {
 interface UserInfo {
     uid: string;
     displayName: string | null;
-    email: string | null;
+    email?: string | null;
     photoURL?: string | null;
 }
 
