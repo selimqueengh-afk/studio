@@ -35,7 +35,18 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+    // Redirect to chat if it's the current user's own profile.
+    // This must be in a useEffect to avoid "cannot update component while rendering" error.
+    if (currentUser?.uid === userId) {
+        router.push('/chat');
+    }
+  }, [currentUser, userId, router]);
+
+  useEffect(() => {
+    if (!userId || currentUser?.uid === userId) {
+        setLoading(false);
+        return;
+    };
 
     setLoading(true);
     const docRef = doc(db, 'users', userId);
@@ -53,7 +64,7 @@ export default function ProfilePage() {
     });
     
     return () => unsubscribeUser();
-  }, [userId]);
+  }, [userId, currentUser]);
   
   useEffect(() => {
     if (!currentUser || !userId || currentUser.uid === userId) return;
@@ -92,14 +103,6 @@ export default function ProfilePage() {
       unsubFriend();
     };
   }, [currentUser, userId]);
-
-  useEffect(() => {
-    // Redirect to chat if it's the current user's own profile.
-    // This must be in a useEffect to avoid "cannot update component while rendering" error.
-    if (currentUser?.uid === userId) {
-        router.push('/chat');
-    }
-  }, [currentUser, userId, router]);
 
 
   const handleSendRequest = async () => {
