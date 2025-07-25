@@ -9,7 +9,7 @@
     "match": "/users/{userId}/{document=**}",
     "allow": "read, write: if isUser(userId);",
     "match": "/friendRequests/{requestId}",
-    "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;",
-    "allow": "read, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);"
+    "allow": "read, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
+    "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;"
   }
 }
