@@ -24,6 +24,24 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
   const requestId = `${fromUser.uid}_${toUser.uid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
 
+  // Check if a request from toUser to fromUser already exists
+  const reverseRequestDocRef = doc(db, 'friendRequests', `${toUser.uid}_${fromUser.uid}`);
+  const reverseRequestSnap = await getDoc(reverseRequestDocRef);
+  if (reverseRequestSnap.exists()) {
+      // If it exists, they are trying to accept a friend request.
+      // We can automatically accept it.
+      await acceptFriendRequest(reverseRequestSnap.id, toUser, fromUser);
+      return;
+  }
+  
+  // Check if they are already friends
+    const friendDocRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
+    const friendSnap = await getDoc(friendDocRef);
+    if (friendSnap.exists()) {
+        throw new Error("Zaten arkadaşsınız.");
+    }
+
+
   const fromData = {
     uid: fromUser.uid,
     displayName: fromUser.displayName || null,
@@ -75,10 +93,10 @@ export const acceptFriendRequest = async (
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
 
-  // Proactively create the chat room
-  await createOrGetRoom(toUser, fromUser);
-
   await batch.commit();
+  
+  // Proactively create the chat room AFTER the batch has been committed.
+  await createOrGetRoom(toUser, fromUser);
 };
 
 export const rejectFriendRequest = async (requestId: string) => {

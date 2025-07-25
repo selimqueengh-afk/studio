@@ -58,22 +58,31 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   const otherParticipantPhoto = otherParticipantId ? room?.participantPhotos?.[otherParticipantId] : null;
 
   useEffect(() => {
+    if (!user?.uid) return;
+
     const fetchRoom = async () => {
       setLoading(true);
-      const roomDoc = await getDoc(doc(db, 'rooms', roomId));
-      if (roomDoc.exists()) {
-        const roomData = roomDoc.data() as RoomData;
-        if (roomData.isDirectMessage && !roomData.participants?.[user?.uid || '']) {
+      try {
+        const roomDoc = await getDoc(doc(db, 'rooms', roomId));
+        if (roomDoc.exists()) {
+          const roomData = roomDoc.data() as RoomData;
+           if (roomData.participants && !roomData.participants[user.uid]) {
              toast({ variant: 'destructive', title: 'Yetkisiz', description: 'Bu sohbete erişim izniniz yok.'});
              router.push('/chat');
              return;
+          }
+          setRoom(roomData);
+        } else {
+          toast({ variant: 'destructive', title: 'Hata', description: 'Sohbet odası bulunamadı.' });
+          router.push('/chat');
         }
-        setRoom(roomData);
-      } else {
-        toast({ variant: 'destructive', title: 'Hata', description: 'Sohbet odası bulunamadı.' });
-        router.push('/chat');
+      } catch (error) {
+          console.error("Error fetching room: ", error);
+          toast({ variant: 'destructive', title: 'Hata', description: 'Sohbet odası yüklenemedi.' });
+          router.push('/chat');
       }
     };
+    
     fetchRoom();
 
     const q = query(
@@ -108,7 +117,7 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   }, [messages]);
 
 
-  if (loading) {
+  if (loading || !room) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center h-16 shrink-0 border-b bg-card px-6">
