@@ -20,10 +20,10 @@ import { acceptFriendRequest, rejectFriendRequest } from '@/lib/friends';
 interface FriendRequest {
   id: string;
   from: string;
-  fromName: string | null;
+  fromName: string;
   fromPhoto: string | null;
   to: string;
-  toName: string | null;
+  toName: string;
   toPhoto: string | null;
 }
 
@@ -62,13 +62,13 @@ export default function FriendRequestBell() {
     
     const fromUser = { 
         uid: request.from, 
-        displayName: request.fromName || 'Bilinmeyen Kullanıcı',
-        photoURL: request.fromPhoto || null
+        displayName: request.fromName,
+        photoURL: request.fromPhoto
     };
     const toUser = { 
         uid: user.uid, 
-        displayName: user.displayName || 'Bilinmeyen Kullanıcı',
-        photoURL: user.photoURL || null
+        displayName: user.displayName,
+        photoURL: user.photoURL
     };
 
     try {
@@ -123,10 +123,10 @@ export default function FriendRequestBell() {
               <div key={req.id} className="flex flex-col p-2 rounded-lg hover:bg-secondary">
                  <div className="flex items-center gap-3">
                     <Avatar>
-                        <AvatarImage src={req.fromPhoto || undefined} alt={req.fromName || ''} />
-                        <AvatarFallback>{getInitials(req.fromName || 'Bilinmeyen Kullanıcı')}</AvatarFallback>
+                        <AvatarImage src={req.fromPhoto || undefined} alt={req.fromName} />
+                        <AvatarFallback>{getInitials(req.fromName)}</AvatarFallback>
                     </Avatar>
-                    <p className="flex-1 font-semibold truncate">{req.fromName || 'Bilinmeyen Kullanıcı'}</p>
+                    <p className="flex-1 font-semibold truncate">{req.fromName}</p>
                  </div>
                  <div className="flex gap-2 mt-2 self-end">
                     <Button 

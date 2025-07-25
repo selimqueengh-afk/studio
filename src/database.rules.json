@@ -12,7 +12,9 @@
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
 
     "match": "/users/{userId}/friends/{friendId}",
-    "allow": "read, list: if isUser(userId); create, delete: if isUser(userId);",
+    "allow": "read, list: if isUser(userId);",
+    "allow": "write: if isUser(userId) || isUser(friendId);",
+    "allow": "delete: if isUser(userId) || isUser(friendId);",
 
     "match": "/friendRequests/{requestId}",
     "allow": "read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);",

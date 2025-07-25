@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,24 +33,13 @@ export default function ProfilePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
 
-  const incomingRequestId = useMemo(() => {
-    if (!currentUser || !profile) return null;
-    return `${profile.uid}_${currentUser.uid}`;
-  }, [currentUser, profile]);
-
-  const outgoingRequestId = useMemo(() => {
-    if (!currentUser || !profile) return null;
-    return `${currentUser.uid}_${profile.uid}`;
-  }, [currentUser, profile]);
-
-  // Redirect if viewing own profile
   useEffect(() => {
-    if (!authLoading && currentUser?.uid === userId) {
+    if (authLoading) return;
+    if (currentUser?.uid === userId) {
       router.replace('/chat');
     }
   }, [currentUser, userId, authLoading, router]);
 
-  // Fetch profile data
   useEffect(() => {
     if (!userId) return;
     const docRef = doc(db, 'users', userId);
@@ -67,42 +56,53 @@ export default function ProfilePage() {
     return () => unsubscribe();
   }, [userId]);
 
-  // Unified friendship status listener
   useEffect(() => {
-    if (!currentUser || !profile || !outgoingRequestId || !incomingRequestId) {
-        setFriendshipStatus('loading');
-        return;
+    if (!currentUser || !profile) {
+      setFriendshipStatus('loading');
+      return;
     }
 
     const friendRef = doc(db, `users/${currentUser.uid}/friends/${profile.uid}`);
-    const sentRequestRef = doc(db, 'friendRequests', outgoingRequestId);
-    const receivedRequestRef = doc(db, 'friendRequests', incomingRequestId);
+    const sentRequestRef = doc(db, 'friendRequests', `${currentUser.uid}_${profile.uid}`);
+    const receivedRequestRef = doc(db, 'friendRequests', `${profile.uid}_${currentUser.uid}`);
 
-    // Combine all listeners into one effect
-    const unsubFriend = onSnapshot(friendRef, (friendSnap) => {
-      const unsubSent = onSnapshot(sentRequestRef, (sentSnap) => {
-        const unsubReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
-          if (friendSnap.exists()) {
-            setFriendshipStatus('friends');
-          } else if (sentSnap.exists()) {
-            setFriendshipStatus('request_sent');
-          } else if (receivedSnap.exists()) {
-            setFriendshipStatus('request_received');
-          } else {
-            setFriendshipStatus('not_friends');
-          }
-        });
-        return unsubReceived;
-      });
-      return unsubSent;
-    });
+    const unsubs: (() => void)[] = [];
 
-    return () => {
-      // This might not be perfect as inner unsubs are not returned, but it's better.
-      // A more robust solution would involve a more complex cleanup function.
-      unsubFriend();
+    const listen = async () => {
+        setFriendshipStatus('loading');
+        try {
+            const [friendSnap, sentSnap, receivedSnap] = await Promise.all([
+                getDoc(friendRef),
+                getDoc(sentRequestRef),
+                getDoc(receivedRequestRef)
+            ]);
+
+            if (friendSnap.exists()) {
+                setFriendshipStatus('friends');
+            } else if (sentSnap.exists()) {
+                setFriendshipStatus('request_sent');
+            } else if (receivedSnap.exists()) {
+                setFriendshipStatus('request_received');
+            } else {
+                setFriendshipStatus('not_friends');
+            }
+        } catch (e) {
+            console.error(e);
+            setFriendshipStatus('not_friends'); // fallback
+        }
     };
-  }, [currentUser, profile, outgoingRequestId, incomingRequestId]);
+    
+    listen(); // Initial check
+
+    // Real-time listeners
+    unsubs.push(onSnapshot(friendRef, (snap) => { if (snap.exists()) setFriendshipStatus('friends'); else listen(); }));
+    unsubs.push(onSnapshot(sentRequestRef, (snap) => { if (snap.exists()) setFriendshipStatus('request_sent'); else listen(); }));
+    unsubs.push(onSnapshot(receivedRequestRef, (snap) => { if (snap.exists()) setFriendshipStatus('request_received'); else listen(); }));
+    
+    return () => {
+      unsubs.forEach(unsub => unsub());
+    };
+  }, [currentUser, profile]);
 
 
   const handleAction = async (action: () => Promise<void>, successMessage: string, errorMessage: string) => {
@@ -127,19 +127,21 @@ export default function ProfilePage() {
   };
 
   const handleAcceptRequest = () => {
-    if (!currentUser || !profile || !incomingRequestId) return;
+    if (!currentUser || !profile) return;
     const fromUser = { uid: profile.uid, displayName: profile.displayName, email: profile.email, photoURL: profile.photoURL };
+    const requestId = `${profile.uid}_${currentUser.uid}`;
     handleAction(
-      () => acceptFriendRequest(incomingRequestId, fromUser, currentUser),
+      () => acceptFriendRequest(requestId, fromUser, currentUser),
       `${profile.displayName} artık arkadaşın.`,
       'İstek kabul edilemedi.'
     );
   };
 
   const handleRejectRequest = () => {
-    if (!incomingRequestId) return;
+    if (!currentUser || !profile) return;
+    const requestId = `${profile.uid}_${currentUser.uid}`;
     handleAction(
-      () => rejectFriendRequest(incomingRequestId),
+      () => rejectFriendRequest(requestId),
       'Arkadaşlık isteği reddedildi.',
       'İstek reddedilemedi.'
     );

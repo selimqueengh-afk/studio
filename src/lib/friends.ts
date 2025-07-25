@@ -39,18 +39,18 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
     throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
   if (reverseRequestSnap.exists()) {
-    const fromUserInfo = { uid: toUser.uid, displayName: toUser.displayName, photoURL: toUser.photoURL };
-    const toUserInfo = { uid: fromUser.uid, displayName: fromUser.displayName, photoURL: fromUser.photoURL };
+    const fromUserInfo = { uid: toUser.uid, displayName: toUser.displayName, photoURL: toUser.photoURL, email: toUser.email };
+    const toUserInfo = { uid: fromUser.uid, displayName: fromUser.displayName, photoURL: fromUser.photoURL, email: fromUser.email };
     await acceptFriendRequest(reverseRequestId, fromUserInfo, toUserInfo);
     return;
   }
 
   await setDoc(requestDocRef, {
     from: fromUser.uid,
-    fromName: fromUser.displayName,
+    fromName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
     fromPhoto: fromUser.photoURL || null,
     to: toUser.uid,
-    toName: toUser.displayName,
+    toName: toUser.displayName || 'Bilinmeyen Kullanıcı',
     toPhoto: toUser.photoURL || null,
     createdAt: serverTimestamp(),
   });
@@ -59,7 +59,6 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
 export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
   const batch = writeBatch(db);
 
-  // Add friend to the current user's (toUser) friend list
   const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
   batch.set(toFriendRef, {
     uid: fromUser.uid,
@@ -67,7 +66,6 @@ export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo,
     photoURL: fromUser.photoURL || null,
   });
 
-  // Add the current user (toUser) to the sender's (fromUser) friend list
   const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
   batch.set(fromFriendRef, {
     uid: toUser.uid,
@@ -75,7 +73,6 @@ export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo,
     photoURL: toUser.photoURL || null,
   });
 
-  // Delete the friend request
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
 
