@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { StaticReel } from '@/lib/reels';
-import ReelCard from '../reels/ReelCard';
+
 
 interface MessageProps {
   message: {
@@ -34,7 +34,18 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
 
   const renderMessageContent = () => {
     if (message.type === 'reel' && message.reel) {
-        return <ReelCard reel={message.reel} isShared={true} />;
+        return (
+            <div className="relative aspect-video w-64 rounded-lg border bg-black overflow-hidden">
+                <video
+                    src={message.reel.videoUrl}
+                    controls
+                    preload="metadata"
+                    className="w-full h-full object-contain"
+                >
+                    Tarayıcınız video etiketini desteklemiyor.
+                </video>
+            </div>
+        );
     }
 
     return (
