@@ -30,14 +30,14 @@ interface FriendRequest {
 }
 
 export default function FriendRequestBell() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    if (authLoading || !user) {
       setLoading(false);
       setRequests([]);
       return;
@@ -45,6 +45,7 @@ export default function FriendRequestBell() {
 
     setLoading(true);
     const q = query(collection(db, 'friendRequests'), where('to.uid', '==', user.uid));
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FriendRequest));
       setRequests(reqs);
@@ -56,14 +57,14 @@ export default function FriendRequestBell() {
     });
 
     return () => unsubscribe();
-  }, [user, toast]);
+  }, [user, authLoading, toast]);
 
   const handleAccept = async (request: FriendRequest) => {
     if (!user) return;
     setActionLoading(request.id);
     
     try {
-      // Ensure the user objects are correctly formed
+      // Ensure the user objects passed to the function are complete
       const fromUser = { 
         uid: request.from.uid, 
         displayName: request.from.displayName || 'Bilinmeyen Kullanıcı',
@@ -135,7 +136,7 @@ export default function FriendRequestBell() {
                     <Button 
                       size="sm" 
                       onClick={() => handleAccept(req)} 
-                      disabled={actionLoading === req.id}
+                      disabled={!!actionLoading}
                       className="w-[44px]"
                     >
                         {actionLoading === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
@@ -144,7 +145,7 @@ export default function FriendRequestBell() {
                       size="sm" 
                       variant="outline" 
                       onClick={() => handleReject(req.id)} 
-                      disabled={actionLoading === req.id}
+                      disabled={!!actionLoading}
                       className="w-[44px]"
                     >
                         {actionLoading === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <UserX className="h-4 w-4" />}

@@ -8,20 +8,20 @@ import {
   deleteDoc,
   serverTimestamp,
   writeBatch,
-  getDoc
+  getDoc,
+  collection,
 } from 'firebase/firestore';
 
 interface UserInfo {
-    uid: string;
-    displayName: string | null;
-    email?: string | null;
-    photoURL?: string | null;
+  uid: string;
+  displayName: string | null;
+  photoURL?: string | null;
 }
 
 export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) => {
   const requestId = `${fromUser.uid}_${toUser.uid}`;
   const reverseRequestId = `${toUser.uid}_${fromUser.uid}`;
-  
+
   const requestDocRef = doc(db, 'friendRequests', requestId);
   const reverseRequestDocRef = doc(db, 'friendRequests', reverseRequestId);
   const friendDocRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
@@ -29,7 +29,7 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
   const [requestSnap, reverseRequestSnap, friendSnap] = await Promise.all([
     getDoc(requestDocRef),
     getDoc(reverseRequestDocRef),
-    getDoc(friendDocRef)
+    getDoc(friendDocRef),
   ]);
 
   if (friendSnap.exists()) {
@@ -39,46 +39,57 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
     throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
   if (reverseRequestSnap.exists()) {
-    throw new Error('Bu kullanıcı size zaten bir istek göndermiş. Lütfen isteklerinizi kontrol edin.');
+    throw new Error(
+      'Bu kullanıcı size zaten bir istek göndermiş. Lütfen isteklerinizi kontrol edin.'
+    );
   }
 
-  await setDoc(requestDocRef, {
-    from: {
-        uid: fromUser.uid,
-        displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
-        photoURL: fromUser.photoURL || null,
-    },
-    to: {
-        uid: toUser.uid,
-        displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
-        photoURL: toUser.photoURL || null,
-    },
-    createdAt: serverTimestamp(),
-  });
-};
-
-export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
-  const batch = writeBatch(db);
-
-  const safeFromUser = {
+  // Ensure data is not undefined before setting
+  const fromData = {
     uid: fromUser.uid,
     displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
     photoURL: fromUser.photoURL || null,
   };
 
-  const safeToUser = {
+  const toData = {
+    uid: toUser.uid,
+    displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
+    photoURL: toUser.photoURL || null,
+  };
+
+  await setDoc(requestDocRef, {
+    from: fromData,
+    to: toData,
+    createdAt: serverTimestamp(),
+  });
+};
+
+export const acceptFriendRequest = async (
+  requestId: string,
+  fromUser: UserInfo,
+  toUser: UserInfo
+) => {
+  const batch = writeBatch(db);
+
+  const friendDataForCurrentUser = {
+    uid: fromUser.uid,
+    displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
+    photoURL: fromUser.photoURL || null,
+  };
+
+  const currentUserDataForFriend = {
     uid: toUser.uid,
     displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
     photoURL: toUser.photoURL || null,
   };
 
   // Add friend to current user's friend list
-  const toFriendRef = doc(db, `users/${safeToUser.uid}/friends/${safeFromUser.uid}`);
-  batch.set(toFriendRef, safeFromUser);
+  const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
+  batch.set(toFriendRef, friendDataForCurrentUser);
 
   // Add current user to friend's friend list
-  const fromFriendRef = doc(db, `users/${safeFromUser.uid}/friends/${safeToUser.uid}`);
-  batch.set(fromFriendRef, safeToUser);
+  const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
+  batch.set(fromFriendRef, currentUserDataForFriend);
 
   // Delete the friend request
   const requestDocRef = doc(db, 'friendRequests', requestId);
@@ -87,21 +98,19 @@ export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo,
   await batch.commit();
 };
 
-
 export const rejectFriendRequest = async (requestId: string) => {
   const requestDocRef = doc(db, 'friendRequests', requestId);
   await deleteDoc(requestDocRef);
 };
 
-
 export const removeFriend = async (currentUserUid: string, friendUid: string) => {
-    const batch = writeBatch(db);
+  const batch = writeBatch(db);
 
-    const currentUserFriendRef = doc(db, `users/${currentUserUid}/friends/${friendUid}`);
-    batch.delete(currentUserFriendRef);
+  const currentUserFriendRef = doc(db, `users/${currentUserUid}/friends/${friendUid}`);
+  batch.delete(currentUserFriendRef);
 
-    const friendUserFriendRef = doc(db, `users/${friendUid}/friends/${currentUserUid}`);
-    batch.delete(friendUserFriendRef);
+  const friendUserFriendRef = doc(db, `users/${friendUid}/friends/${currentUserUid}`);
+  batch.delete(friendUserFriendRef);
 
-    await batch.commit();
-}
+  await batch.commit();
+};
