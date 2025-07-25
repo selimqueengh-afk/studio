@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, User as UserIcon, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getInitials } from '@/lib/utils';
 
 export default function UserNav() {
   const { user, signOut, loading } = useAuth();
@@ -26,15 +27,6 @@ export default function UserNav() {
   if (!user) {
     return null;
   }
-
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return 'SO';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('');
-  };
 
   return (
     <DropdownMenu>

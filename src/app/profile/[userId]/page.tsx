@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, UserCheck, Clock, UserX, ArrowLeft } from 'lucide-react';
 import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend } from '@/lib/friends';
 import { useToast } from '@/hooks/use-toast';
+import { getInitials } from '@/lib/utils';
 
 type UserProfile = {
   uid: string;
@@ -32,11 +33,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('none');
   const [isUpdating, setIsUpdating] = useState(false);
-
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return '??';
-    return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
-  };
 
   const checkFriendshipStatus = useCallback(async () => {
     if (!currentUser || !userId) return;

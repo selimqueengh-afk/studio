@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { collection, query, onSnapshot, where, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDocs, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, Search, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { getInitials } from '@/lib/utils';
 
 interface User {
     uid: string;
@@ -23,75 +24,60 @@ export default function FindFriendsPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [friendUids, setFriendUids] = useState<Set<string>>(new Set());
-    const [requestUids, setRequestUids] = useState<Set<string>>(new Set());
+    const [friendAndRequestUids, setFriendAndRequestUids] = useState<Set<string>>(new Set());
 
-    const getInitials = (name: string | null | undefined) => {
-        if (!name) return '??';
-        return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
-    };
-
-    const fetchInitialData = useCallback(async (uid: string) => {
+    const fetchUsersAndRelations = useCallback(async (uid: string) => {
         setLoading(true);
         try {
+            // Fetch all users
             const usersCol = collection(db, 'users');
             const userSnapshot = await getDocs(usersCol);
             const allUsers = userSnapshot.docs.map(doc => doc.data() as User);
             setUsers(allUsers.filter(u => u.uid !== uid));
+
+            // Fetch friends
+            const friendsQuery = query(collection(db, `users/${uid}/friends`));
+            const friendsSnapshot = await getDocs(friendsQuery);
+            const friendIds = new Set(friendsSnapshot.docs.map(doc => doc.id));
+
+            // Fetch sent and received friend requests
+            const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', uid));
+            const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', uid));
+            
+            const [sentSnapshot, receivedSnapshot] = await Promise.all([
+                getDocs(sentRequestsQuery),
+                getDocs(receivedRequestsQuery)
+            ]);
+            
+            const sentRequestUids = sentSnapshot.docs.map(doc => doc.data().to);
+            const receivedRequestUids = receivedSnapshot.docs.map(doc => doc.data().from);
+            
+            setFriendAndRequestUids(new Set([...friendIds, ...sentRequestUids, ...receivedRequestUids]));
+
         } catch (error) {
-            console.error("Error fetching users: ", error);
+            console.error("Error fetching initial data: ", error);
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        if (!currentUser) {
+        if (currentUser) {
+            fetchUsersAndRelations(currentUser.uid);
+        } else {
             setLoading(false);
-            return;
         }
-
-        fetchInitialData(currentUser.uid);
-
-        const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
-        const unsubscribeFriends = onSnapshot(friendsQuery, (snapshot) => {
-            setFriendUids(new Set(snapshot.docs.map(doc => doc.id)));
-        });
-
-        const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', currentUser.uid));
-        const unsubscribeSent = onSnapshot(sentRequestsQuery, (snapshot) => {
-            const sentUids = snapshot.docs.map(doc => doc.data().to);
-            setRequestUids(prev => {
-                const newSet = new Set(prev);
-                sentUids.forEach(uid => newSet.add(uid));
-                return newSet;
-            });
-        });
-
-        const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', currentUser.uid));
-        const unsubscribeReceived = onSnapshot(receivedRequestsQuery, (snapshot) => {
-            const receivedUids = snapshot.docs.map(doc => doc.data().from);
-            setRequestUids(prev => {
-                const newSet = new Set(prev);
-                receivedUids.forEach(uid => newSet.add(uid));
-                return newSet;
-            });
-        });
-
-        return () => {
-            unsubscribeFriends();
-            unsubscribeSent();
-            unsubscribeReceived();
-        };
-    }, [currentUser, fetchInitialData]);
+    }, [currentUser, fetchUsersAndRelations]);
 
     const filteredUsers = useMemo(() => {
-        return users.filter(user => 
+        if (!searchTerm) {
+            return users.filter(user => !friendAndRequestUids.has(user.uid));
+        }
+        return users.filter(user =>
             user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-            !friendUids.has(user.uid) &&
-            !requestUids.has(user.uid)
+            !friendAndRequestUids.has(user.uid)
         );
-    }, [users, searchTerm, friendUids, requestUids]);
+    }, [users, searchTerm, friendAndRequestUids]);
 
 
     return (
@@ -142,7 +128,7 @@ export default function FindFriendsPage() {
                         </div>
                     )) : (
                         <p className="text-center text-muted-foreground mt-8">
-                            Aramanızla eşleşen kullanıcı bulunamadı veya tüm kullanıcılar zaten arkadaşınız.
+                            Aramanızla eşleşen kullanıcı bulunamadı veya tüm kullanıcılar zaten arkadaşınız/istek gönderilmiş.
                         </p>
                     )}
                 </div>

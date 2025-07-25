@@ -9,9 +9,6 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  deleteDoc,
-  writeBatch,
-  getDocs,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -19,14 +16,12 @@ import Message from './Message';
 import MessageInput from './MessageInput';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
-import { Button } from '../ui/button';
-import { Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import ReelCard from '../reels/ReelCard';
+import { getInitials } from '@/lib/utils';
 import type { Reel } from '@/lib/youtube';
+import Link from 'next/link';
 
 
 interface MessageData {
@@ -111,15 +106,6 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
         }
     }
   }, [messages]);
-
-   const getInitials = (name: string | null | undefined) => {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('');
-  };
 
 
   if (loading) {
