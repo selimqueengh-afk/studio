@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, PlayCircle, Send, AlertTriangle, VolumeX, Volume2, ArrowLeft } from 'lucide-react';
+import { Loader2, Send, AlertTriangle, VolumeX, Volume2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { useToast } from '@/hooks/use-toast';
@@ -52,7 +52,7 @@ export default function ReelsPage() {
     } finally {
         setLoading(false);
     }
-  }, [loading, hasMore, nextPageToken]);
+  }, [loading, hasMore]);
 
   useEffect(() => {
     loadMoreReels();
@@ -83,7 +83,7 @@ export default function ReelsPage() {
                   }
               });
           },
-          { rootMargin: '0px', threshold: 0.7 } // Trigger when 70% of the video is visible
+          { rootMargin: '0px', threshold: 0.8 } // Trigger when 80% of the video is visible
       );
 
       const currentReelRefs = reelRefs.current;
@@ -128,34 +128,38 @@ export default function ReelsPage() {
     
     return reels.map((reel, index) => {
       const isPlaying = intersectingReelId === reel.id;
-      const embedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=${isPlaying ? 1 : 0}&mute=${isMuted ? 1 : 0}&controls=0&showinfo=0&loop=1&playlist=${reel.id}&playsinline=1`;
+      const embedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&showinfo=0&loop=1&playlist=${reel.id}&playsinline=1`;
       
       return (
         <div 
           ref={node => {
             if (node) reelRefs.current.set(reel.id, node);
             if (reels.length === index + 1) {
-              lastReelElementRef(node as HTMLDivElement);
+              lastReelElementRef(node);
             }
           }}
           key={reel.id} 
           data-reel-id={reel.id}
           className="h-full w-full snap-start relative flex items-center justify-center bg-black overflow-hidden"
         >
-          <iframe
-            src={embedUrl}
-            title={reel.description}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            className={cn("absolute top-0 left-0 w-full h-full transition-opacity duration-500", isPlaying ? "opacity-100" : "opacity-0")}
-          ></iframe>
-           <img
-            src={reel.thumbnailUrl}
-            alt={reel.description || `Reel from ${reel.author}`}
-            className={cn("object-cover w-full h-full transition-opacity duration-500 pointer-events-none", isPlaying ? 'opacity-0' : 'opacity-100')}
-            data-ai-hint="youtube short"
-          />
+          {isPlaying ? (
+            <iframe
+              src={embedUrl}
+              title={reel.description}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute top-0 left-0 w-full h-full"
+            ></iframe>
+          ) : (
+            <img
+              src={reel.thumbnailUrl}
+              alt={reel.description || `Reel from ${reel.author}`}
+              className="object-cover w-full h-full pointer-events-none"
+              data-ai-hint="youtube short"
+              loading="lazy"
+            />
+          )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
           
@@ -163,22 +167,22 @@ export default function ReelsPage() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="text-white bg-black/20 hover:bg-black/40"
+                    className="text-white bg-black/50 hover:bg-black/70 rounded-full"
                     onClick={() => router.push('/chat')}
                 >
                     <ArrowLeft className="w-6 h-6" />
                 </Button>
             </div>
 
-           <div className="absolute bottom-16 left-4 text-white z-10 max-w-[calc(100%-5rem)] pointer-events-none">
-                <p className="font-bold">{reel.author}</p>
-                <p className="text-sm truncate">{reel.description}</p>
+           <div className="absolute bottom-16 left-4 text-white z-10 max-w-[calc(100%-6rem)] pointer-events-none">
+                <p className="font-bold drop-shadow-lg">{reel.author}</p>
+                <p className="text-sm truncate drop-shadow-lg">{reel.description}</p>
             </div>
             <div className="absolute bottom-16 right-4 flex flex-col gap-4 z-10">
-                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/20 hover:bg-black/40" onClick={() => setIsMuted(prev => !prev)}>
+                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/50 hover:bg-black/70 rounded-full" onClick={() => setIsMuted(prev => !prev)}>
                    {isMuted ? <VolumeX className="w-7 h-7" /> : <Volume2 className="w-7 h-7" />}
                  </Button>
-                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/20 hover:bg-black/40" onClick={() => handleShareClick(reel)}>
+                 <Button variant="ghost" size="icon" className="text-white h-12 w-12 bg-black/50 hover:bg-black/70 rounded-full" onClick={() => handleShareClick(reel)}>
                     <Send className="w-7 h-7" />
                  </Button>
             </div>
@@ -187,15 +191,15 @@ export default function ReelsPage() {
   }
 
   return (
-    <div className="h-[100svh] w-full max-w-md mx-auto bg-black overflow-y-auto snap-y snap-mandatory relative">
+    <div className="h-[100svh] w-full max-w-md mx-auto bg-black overflow-y-scroll snap-y snap-mandatory relative">
       {renderContent()}
       {loading && (
-        <div className="h-full w-full snap-center flex items-center justify-center text-white">
+        <div className="h-full w-full snap-center flex items-center justify-center text-white absolute bottom-0">
           <Loader2 className="w-12 h-12 animate-spin" />
         </div>
       )}
       {!loading && !hasMore && reels.length > 0 && (
-         <div className="h-24 w-full flex items-center justify-center text-white/70">
+         <div className="h-24 w-full flex items-center justify-center text-white/70 absolute bottom-0">
             <p>Daha fazla video yok.</p>
         </div>
       )}
@@ -208,6 +212,5 @@ export default function ReelsPage() {
       )}
     </div>
   );
-}
 
-
+    
