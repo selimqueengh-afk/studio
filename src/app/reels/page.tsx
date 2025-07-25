@@ -12,8 +12,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel"
 
 
@@ -43,7 +41,7 @@ export default function ReelsPage() {
             orientation="vertical"
             className="w-full max-w-md h-full"
             >
-            <CarouselContent className="h-full">
+            <CarouselContent className="-mt-0 h-full">
                 {reels.map((reel) => (
                     <CarouselItem key={reel.id} className="pt-0 p-0 h-full relative">
                        <div className="absolute top-4 left-4 z-20">
@@ -92,4 +90,3 @@ export default function ReelsPage() {
     </div>
   );
 }
-

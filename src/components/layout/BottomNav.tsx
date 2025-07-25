@@ -22,8 +22,8 @@ export default function BottomNav() {
         return null;
     }
 
-    // Hide the bottom nav if we are inside a specific chat room
-    if (pathname.startsWith('/chat/')) {
+    // Hide the bottom nav if we are inside a specific chat room or on the reels page
+    if (pathname.startsWith('/chat/') || pathname.startsWith('/reels')) {
         return null;
     }
 

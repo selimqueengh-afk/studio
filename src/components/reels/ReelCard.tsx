@@ -20,12 +20,13 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
          <div className={cn("relative w-full h-full", isShared ? 'aspect-[9/16]' : '')}>
             {reel.videoUrl ? (
                 <video 
+                    key={reel.videoUrl}
                     src={reel.videoUrl}
                     loop
                     autoPlay
                     muted
                     playsInline
-                    className="object-cover w-full h-full"
+                    className="w-full h-full object-cover"
                 >
                     Your browser does not support the video tag.
                 </video>
@@ -43,7 +44,7 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
     );
 
     return (
-        <div className={cn("bg-card border rounded-lg overflow-hidden transition-shadow", isShared ? "w-64" : "w-full h-full")}>
+        <div className={cn("bg-black overflow-hidden transition-shadow w-full h-full", isShared ? "w-64 rounded-lg border" : "")}>
            {isShared ? (
              <a href={reel.videoUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full cursor-pointer">
                {cardContent}
