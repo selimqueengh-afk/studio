@@ -3,7 +3,7 @@ import { MessageSquare, Bell, Users } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import UserNav from '@/components/auth/UserNav';
-import FriendRequestBell from '@/components/friends/FriendRequestBell';
+
 
 export default function Header() {
   return (
@@ -16,7 +16,7 @@ export default function Header() {
         </Link>
       </div>
       <div className="flex items-center gap-4">
-        <FriendRequestBell />
+        
         <UserNav />
       </div>
     </header>

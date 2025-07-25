@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { collection, query, onSnapshot, getDocs, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, Search, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
+import { createOrGetRoom } from '@/lib/rooms';
+import { useRouter } from 'next/navigation';
 
 interface User {
     uid: string;
@@ -21,69 +23,51 @@ interface User {
 
 export default function FindFriendsPage() {
     const { user: currentUser } = useAuth();
+    const router = useRouter();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [friendAndRequestUids, setFriendAndRequestUids] = useState<Set<string>>(new Set());
-
-    const fetchUsersAndRelations = useCallback(async (uid: string) => {
-        setLoading(true);
-        try {
-            // Fetch all users
-            const usersCol = collection(db, 'users');
-            const userSnapshot = await getDocs(usersCol);
-            const allUsers = userSnapshot.docs.map(doc => doc.data() as User);
-            setUsers(allUsers.filter(u => u.uid !== uid));
-
-            // Fetch friends
-            const friendsQuery = query(collection(db, `users/${uid}/friends`));
-            const friendsSnapshot = await getDocs(friendsQuery);
-            const friendIds = new Set(friendsSnapshot.docs.map(doc => doc.id));
-
-            // Fetch sent and received friend requests
-            const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', uid));
-            const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', uid));
-            
-            const [sentSnapshot, receivedSnapshot] = await Promise.all([
-                getDocs(sentRequestsQuery),
-                getDocs(receivedRequestsQuery)
-            ]);
-            
-            const sentRequestUids = sentSnapshot.docs.map(doc => doc.data().to);
-            const receivedRequestUids = receivedSnapshot.docs.map(doc => doc.data().from);
-            
-            setFriendAndRequestUids(new Set([...friendIds, ...sentRequestUids, ...receivedRequestUids]));
-
-        } catch (error) {
-            console.error("Error fetching initial data: ", error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
 
     useEffect(() => {
-        if (currentUser) {
-            fetchUsersAndRelations(currentUser.uid);
-        } else {
+        if (!currentUser) {
             setLoading(false);
+            return;
         }
-    }, [currentUser, fetchUsersAndRelations]);
+
+        const usersCol = collection(db, 'users');
+        const unsubscribe = onSnapshot(usersCol, (snapshot) => {
+            const allUsers = snapshot.docs
+              .map(doc => doc.data() as User)
+              .filter(u => u.uid !== currentUser.uid);
+            setUsers(allUsers);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching users: ", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
 
     const filteredUsers = useMemo(() => {
         if (!searchTerm) {
-            return users.filter(user => !friendAndRequestUids.has(user.uid));
+            return users;
         }
         return users.filter(user =>
-            user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-            !friendAndRequestUids.has(user.uid)
+            user.displayName.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [users, searchTerm, friendAndRequestUids]);
+    }, [users, searchTerm]);
 
+    const startChat = async (friend: User) => {
+        if (!currentUser) return;
+        const roomId = await createOrGetRoom(currentUser, friend);
+        router.push(`/chat/${roomId}`);
+    };
 
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6">
              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">Arkadaş Bul</h1>
+                <h1 className="text-3xl font-bold">Kullanıcıları Bul</h1>
                  <Button asChild variant="outline">
                     <Link href="/chat">
                         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -121,14 +105,13 @@ export default function FindFriendsPage() {
                             </div>
                             <Button asChild size="sm">
                                 <Link href={`/profile/${user.uid}`}>
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Profil
+                                    Profili Görüntüle
                                 </Link>
                             </Button>
                         </div>
                     )) : (
                         <p className="text-center text-muted-foreground mt-8">
-                            Aramanızla eşleşen kullanıcı bulunamadı veya tüm kullanıcılar zaten arkadaşınız/istek gönderilmiş.
+                           Aramanızla eşleşen kullanıcı bulunamadı.
                         </p>
                     )}
                 </div>

@@ -48,11 +48,7 @@ export default function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push(`/profile/${user.uid}`)}>
-          <UserIcon className="mr-2 h-4 w-4" />
-          <span>Profil</span>
-        </DropdownMenuItem>
-         <DropdownMenuItem onClick={() => router.push('/find-friends')}>
+        <DropdownMenuItem onClick={() => router.push(`/find-friends`)}>
           <Users className="mr-2 h-4 w-4" />
           <span>Arkadaş Bul</span>
         </DropdownMenuItem>

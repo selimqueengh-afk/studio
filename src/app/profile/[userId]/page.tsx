@@ -1,16 +1,14 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, UserPlus, UserCheck, Clock, UserX, ArrowLeft } from 'lucide-react';
-import { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend } from '@/lib/friends';
-import { useToast } from '@/hooks/use-toast';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
 
 type UserProfile = {
@@ -20,33 +18,23 @@ type UserProfile = {
   photoURL?: string;
 };
 
-type FriendshipStatus = 'none' | 'pending' | 'friends' | 'received_request';
-
 export default function ProfilePage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const params = useParams();
   const router = useRouter();
   const userId = params.userId as string;
-  const { toast } = useToast();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('none');
-  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    // Redirect to chat if it's the current user's own profile.
-    // This must be in a useEffect to avoid "cannot update component while rendering" error.
-    if (currentUser?.uid === userId) {
-        router.push('/chat');
+    if (!authLoading && currentUser?.uid === userId) {
+      router.push('/chat');
     }
-  }, [currentUser, userId, router]);
+  }, [currentUser, userId, authLoading, router]);
 
   useEffect(() => {
-    if (!userId || currentUser?.uid === userId) {
-        setLoading(false);
-        return;
-    };
+    if (!userId || authLoading || currentUser?.uid === userId) return;
 
     setLoading(true);
     const docRef = doc(db, 'users', userId);
@@ -58,135 +46,21 @@ export default function ProfilePage() {
         setProfile(null);
       }
       setLoading(false);
-    }, () => {
-        setLoading(false);
-        setProfile(null);
+    }, (error) => {
+      console.error("Error fetching user profile:", error);
+      setLoading(false);
+      setProfile(null);
     });
     
     return () => unsubscribeUser();
-  }, [userId, currentUser]);
-  
-  useEffect(() => {
-    if (!currentUser || !userId || currentUser.uid === userId) return;
+  }, [userId, currentUser, authLoading]);
 
-    // Listen for changes in friendship status (are we friends?)
-    const friendRef = doc(db, `users/${currentUser.uid}/friends/${userId}`);
-    const unsubFriend = onSnapshot(friendRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setFriendshipStatus('friends');
-        return; // Early exit if they are friends
-      }
-
-      // If not friends, check for a pending request *we* sent.
-      const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
-      const unsubSent = onSnapshot(sentRequestRef, (sentSnap) => {
-        if (sentSnap.exists()) {
-          setFriendshipStatus('pending');
-        } else {
-          // If no sent request, check for a pending request *we* received.
-          const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
-          const unsubReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
-            if (receivedSnap.exists()) {
-              setFriendshipStatus('received_request');
-            } else {
-              // If no friend record, no sent request, and no received request, they are not connected.
-              setFriendshipStatus('none');
-            }
-          });
-          return () => unsubReceived();
-        }
-      });
-      return () => unsubSent();
-    });
-
-    return () => {
-      unsubFriend();
-    };
-  }, [currentUser, userId]);
-
-
-  const handleSendRequest = async () => {
-    if (!currentUser || !profile) return;
-    setIsUpdating(true);
-    try {
-      await sendFriendRequest(currentUser.uid, profile.uid);
-      toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'İstek gönderilemedi.' });
-    }
-    setIsUpdating(false);
-  };
-
-  const handleAcceptRequest = async () => {
-    if (!currentUser || !profile) return;
-     setIsUpdating(true);
-    try {
-      await acceptFriendRequest(profile.uid, currentUser.uid);
-       toast({ title: 'Başarılı', description: 'Arkadaşlık isteği kabul edildi.' });
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'İstek kabul edilemedi.' });
-    }
-     setIsUpdating(false);
-  };
-  
-  const handleRejectRequest = async () => {
-    if (!currentUser || !profile) return;
-     setIsUpdating(true);
-    try {
-      await rejectFriendRequest(profile.uid, currentUser.uid);
-       toast({ title: 'Başarılı', description: 'Arkadaşlık isteği reddedildi.' });
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'İstek reddedilemedi.' });
-    }
-    setIsUpdating(false);
-  }
-
-  const handleRemoveFriend = async () => {
-     if (!currentUser || !profile || !window.confirm(`${profile.displayName} kişisini arkadaşlıktan çıkarmak istediğinizden emin misiniz?`)) return;
-     setIsUpdating(true);
-    try {
-      await removeFriend(currentUser.uid, profile.uid);
-      toast({ title: 'Başarılı', description: 'Arkadaşlıktan çıkarıldı.' });
-    } catch (error)
-    {
-      console.error(error);
-       toast({ variant: 'destructive', title: 'Hata', description: (error as Error).message || 'Arkadaşlıktan çıkarılamadı.' });
-    }
-    setIsUpdating(false);
-  }
-
-  const renderFriendshipButton = () => {
-    if (isUpdating) {
-        return <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor...</Button>;
-    }
-
-    switch (friendshipStatus) {
-      case 'friends':
-        return <Button variant="destructive" onClick={handleRemoveFriend}><UserX className="mr-2 h-4 w-4" /> Arkadaşlıktan Çıkar</Button>;
-      case 'pending':
-        return <Button variant="secondary" disabled><Clock className="mr-2 h-4 w-4" /> İstek Gönderildi</Button>;
-      case 'received_request':
-        return (
-          <div className="flex gap-2">
-            <Button onClick={handleAcceptRequest}><UserCheck className="mr-2 h-4 w-4" /> Kabul Et</Button>
-            <Button variant="secondary" onClick={handleRejectRequest}>Reddet</Button>
-          </div>
-        );
-      case 'none':
-      default:
-        return <Button onClick={handleSendRequest}><UserPlus className="mr-2 h-4 w-4" /> Arkadaş Ekle</Button>;
-    }
-  };
-
-  if (loading || currentUser?.uid === userId) {
+  if (loading || authLoading || currentUser?.uid === userId) {
     return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   if (!profile) {
-    return <div className="text-center p-4">Kullanıcı bulunamadı veya bu profile erişim izniniz yok.</div>;
+    return <div className="text-center p-4">Kullanıcı bulunamadı.</div>;
   }
 
   return (
@@ -202,9 +76,6 @@ export default function ProfilePage() {
             </Avatar>
             <h1 className="text-3xl font-bold text-foreground">{profile.displayName}</h1>
             <p className="text-muted-foreground mt-1">{profile.email}</p>
-            <div className="mt-8">
-                {renderFriendshipButton()}
-            </div>
         </div>
       </div>
     </div>
