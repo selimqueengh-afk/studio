@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { StaticReel } from '@/lib/reels';
 
-
 interface MessageProps {
   message: {
     id: string;
@@ -34,33 +33,39 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
 
   const renderMessageContent = () => {
     if (message.type === 'reel' && message.reel) {
-        return (
-            <div className="relative aspect-video w-64 rounded-lg border bg-black overflow-hidden">
-                <video
-                    src={message.reel.videoUrl}
-                    controls
-                    preload="metadata"
-                    className="w-full h-full object-contain"
-                >
-                    Tarayıcınız video etiketini desteklemiyor.
-                </video>
-            </div>
-        );
+      return (
+        <div className="relative w-64 rounded-lg border bg-card overflow-hidden group">
+          <div className="aspect-video bg-black">
+             <video
+                src={message.reel.videoUrl}
+                controls
+                preload="metadata"
+                className="w-full h-full object-contain"
+             >
+                Tarayıcınız video etiketini desteklemiyor.
+             </video>
+          </div>
+          <div className="p-2">
+            <p className="font-semibold text-sm truncate">{message.reel.author}</p>
+            <p className="text-xs text-muted-foreground truncate">{message.reel.description}</p>
+          </div>
+        </div>
+      );
     }
 
     return (
-        <div
-            className={cn(
-                'rounded-lg p-3 max-w-xs md:max-w-md lg:max-w-lg break-words',
-                isCurrentUser
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card border'
-            )}
-            >
-            <p>{message.text}</p>
-        </div>
-    )
-  }
+      <div
+        className={cn(
+          'rounded-lg p-3 max-w-xs md:max-w-md lg:max-w-lg break-words',
+          isCurrentUser
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-card border'
+        )}
+      >
+        <p>{message.text}</p>
+      </div>
+    );
+  };
 
   return (
     <div

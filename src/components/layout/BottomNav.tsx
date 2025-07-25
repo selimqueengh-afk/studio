@@ -7,7 +7,6 @@ import { MessageSquare, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-
 export default function BottomNav() {
     const pathname = usePathname();
     const isMobile = useIsMobile();
@@ -22,8 +21,8 @@ export default function BottomNav() {
         return null;
     }
 
-    // Hide the bottom nav if we are inside a specific chat room or on the reels page
-    if (pathname.startsWith('/chat/') || pathname.startsWith('/reels')) {
+    // Hide the bottom nav if we are inside a specific chat room or on the main reels page
+    if (pathname.startsWith('/chat/') || pathname === '/reels') {
         return null;
     }
 
