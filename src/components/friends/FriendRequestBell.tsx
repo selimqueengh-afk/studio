@@ -62,7 +62,7 @@ export default function FriendRequestBell() {
     const fromUser = { 
         uid: request.from, 
         displayName: request.fromName, 
-        email: '', 
+        email: '', // Email is not needed for this action
         photoURL: request.fromPhoto || undefined 
     };
     const toUser = { 

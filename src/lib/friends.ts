@@ -14,7 +14,7 @@ import {
 interface UserInfo {
     uid: string;
     displayName: string | null;
-    email: string;
+    email: string | null;
     photoURL?: string | null;
 }
 
@@ -56,23 +56,19 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
 };
 
 export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
-  if (!fromUser.displayName || !toUser.displayName) {
-      throw new Error("Kullanıcı bilgileri eksik, istek kabul edilemedi.");
-  }
-
   const batch = writeBatch(db);
 
   const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
   batch.set(toFriendRef, {
     uid: fromUser.uid,
-    displayName: fromUser.displayName,
+    displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
     photoURL: fromUser.photoURL || null,
   });
 
   const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
   batch.set(fromFriendRef, {
     uid: toUser.uid,
-    displayName: toUser.displayName,
+    displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
     photoURL: toUser.photoURL || null,
   });
 

@@ -6,16 +6,20 @@
     "match": "/databases/{database}/documents",
     "function isSignedIn()": "return request.auth != null;",
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
+    
     "match": "/users/{userId}",
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
+    
     "match": "/users/{userId}/friends/{friendId}",
-    "allow": "read, list: if isUser(userId); write: if isSignedIn() && (isUser(userId) || request.auth.uid == friendId); delete: if isSignedIn() && (isUser(userId) || isUser(friendId));",
+    "allow": "read, list: if isUser(userId); create, delete: if isSignedIn();",
+
     "match": "/friendRequests/{requestId}",
-    "allow": "read, list: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to); create: if isSignedIn() && request.auth.uid == request.resource.data.from && request.resource.data.status == 'pending' && request.resource.data.keys().hasAll(['from', 'to', 'status', 'createdAt']); delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);",
+    "allow": "read, list: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to); create: if isSignedIn() && request.auth.uid == request.resource.data.from; delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);",
+    
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
-    "match": "/messages/{messageId}",
-    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(request.resource.data.roomId || roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
+    
+    "match": "/rooms/{roomId}/messages/{messageId}",
+    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
   }
 }
-
