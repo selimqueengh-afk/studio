@@ -3,9 +3,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Oturum açmış herhangi bir kullanıcının tüm belgelere erişmesine izin ver.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Allow any signed-in user to read and list user profiles (for find-friends page)
+      // Allow a user to only update their own profile
+      allow read, list: if isSignedIn();
+      allow update: if isUser(userId);
+
+      // Allow a user to read their own friends list
+      match /friends/{friendId} {
+        allow read, list: if isUser(userId);
+      }
+    }
+
+    match /friendRequests/{requestId} {
+      // Allow any signed-in user to read requests (for checking if a request exists)
+      allow read: if isSignedIn();
+      // Allow creating a request only if the 'from' user is the one making the request
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
+      // Allow deleting a request if the user is the sender or receiver
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
+    }
+
+    match /rooms/{roomId} {
+      // Allow read, create, update if the user is a participant
+      allow read, create, update: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
+
+      match /messages/{messageId} {
+        // Allow read, create if the user is a participant of the room
+        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+      }
     }
   }
 }
