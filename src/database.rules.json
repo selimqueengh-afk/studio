@@ -6,12 +6,15 @@
     "match": "/databases/{database}/documents",
     "function isSignedIn()": "return request.auth != null;",
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
-    
+
     "match": "/users/{userId}",
-    "allow": "read, list: if isSignedIn(); update: if isUser(userId);",
-    
+    "allow": "list, read: if isSignedIn(); update: if isUser(userId);",
+      
+    "match": "/users/{userId}/friends/{friendId}",
+    "allow": "list, read: if isUser(userId);",
+
     "match": "/friendRequests/{requestId}",
-    "allow": "create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid; read, update, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);",
+    "allow": "create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid; read, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);",
     
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
