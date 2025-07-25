@@ -140,7 +140,7 @@ export default function ReelsPage() {
           }}
           key={reel.id} 
           data-reel-id={reel.id}
-          className="h-full w-full snap-center relative flex items-center justify-center bg-black overflow-hidden"
+          className="h-full w-full snap-start relative flex items-center justify-center bg-black overflow-hidden"
         >
           <iframe
             src={embedUrl}
