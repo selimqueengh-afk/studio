@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, Search, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
-import { createOrGetRoom } from '@/lib/rooms';
+import { sendFriendRequest } from '@/lib/friends';
+import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -24,8 +25,10 @@ interface User {
 export default function FindFriendsPage() {
     const { user: currentUser } = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -37,7 +40,7 @@ export default function FindFriendsPage() {
         const usersCol = collection(db, 'users');
         const unsubscribe = onSnapshot(usersCol, (snapshot) => {
             const allUsers = snapshot.docs
-              .map(doc => doc.data() as User)
+              .map(doc => ({ ...doc.data(), uid: doc.id } as User))
               .filter(u => u.uid !== currentUser.uid);
             setUsers(allUsers);
             setLoading(false);
@@ -58,11 +61,23 @@ export default function FindFriendsPage() {
         );
     }, [users, searchTerm]);
 
-    const startChat = async (friend: User) => {
+    const handleSendRequest = async (friend: User) => {
         if (!currentUser) return;
-        const roomId = await createOrGetRoom(currentUser, friend);
-        router.push(`/chat/${roomId}`);
+        setActionLoading(friend.uid);
+        try {
+            await sendFriendRequest(currentUser, friend);
+            toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Hata',
+                description: error.message || 'İstek gönderilemedi.',
+            });
+        } finally {
+            setActionLoading(null);
+        }
     };
+
 
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6">
@@ -103,10 +118,17 @@ export default function FindFriendsPage() {
                                     <p className="text-sm text-muted-foreground">{user.email}</p>
                                 </div>
                             </div>
-                            <Button asChild size="sm">
-                                <Link href={`/profile/${user.uid}`}>
-                                    Profili Görüntüle
-                                </Link>
+                            <Button 
+                                size="sm" 
+                                onClick={() => handleSendRequest(user)}
+                                disabled={actionLoading === user.uid}
+                            >
+                                {actionLoading === user.uid ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                )}
+                                Arkadaş Ekle
                             </Button>
                         </div>
                     )) : (
