@@ -1,8 +1,8 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     function isSignedIn() {
       return request.auth != null;
     }
@@ -12,31 +12,23 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow signed-in users to read and list all user profiles for finding friends.
-      // Allow a user to only update their own profile.
       allow read, list: if isSignedIn();
       allow update: if isUser(userId);
 
-      // Allow a user to read their own friends list.
       match /friends/{friendId} {
         allow read, list: if isUser(userId);
       }
     }
     
     match /friendRequests/{requestId} {
-      // Allow a user to create a request if they are the sender.
-      // Allow a user to read, update, or delete a request if they are the sender or receiver.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
       allow read, update, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
     }
-
+    
     match /rooms/{roomId} {
-      // Allow read and write access if the user is a participant in the room.
       allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
 
       match /messages/{messageId} {
-        // Allow users to read and create messages in rooms they are a part of.
-        // Disallow updating or deleting messages.
         allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
         allow update, delete: if false;
       }
