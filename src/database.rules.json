@@ -8,11 +8,8 @@
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
     
     "match": "/users/{userId}",
-    "allow": "read: if isSignedIn(); write: if isUser(userId);",
-
-    "match": "/users",
-    "allow": "list: if isSignedIn();",
-
+    "allow": "read, list: if isSignedIn(); update: if isUser(userId);",
+    
     "match": "/friendRequests/{requestId}",
     "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid; read, update, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
     

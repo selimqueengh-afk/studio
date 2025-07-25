@@ -1,25 +1,50 @@
 
-{
-  "rules": {
-    "rules_version": "2",
-    "service": "cloud.firestore",
-    "match": "/databases/{database}/documents",
-    "function isSignedIn()": "return request.auth != null;",
-    "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
-    
-    "match": "/users/{userId}",
-    "allow": "read: if isSignedIn(); write: if isUser(userId);",
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    "match": "/users",
-    "allow": "list: if isSignedIn();",
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
 
-    "match": "/friendRequests/{requestId}",
-    "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid; read, update, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
-    
-    "match": "/rooms/{roomId}",
-    "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
-    
-    "match": "/rooms/{roomId}/messages/{messageId}",
-    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Allow any signed-in user to list and read all user profiles for the 'find-friends' page.
+      // Allow a user to update only their own profile.
+      allow list, read: if isSignedIn();
+      allow update: if isUser(userId);
+      // Deny create and delete operations on user profiles for security.
+      allow create, delete: if false;
+
+      // Allow access to the 'friends' subcollection
+      match /friends/{friendId} {
+        allow read, list: if isUser(userId);
+        allow create, update, delete: if isUser(userId);
+      }
+    }
+
+    // Rules for the 'friendRequests' collection
+    match /friendRequests/{requestId} {
+      // Allow a request to be read, updated, or deleted only by the sender or the receiver.
+      allow read, update, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);
+      // Allow a request to be created only by the user who is sending it.
+      allow create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;
+    }
+
+    // Rules for chat rooms and messages
+    match /rooms/{roomId} {
+      // Allow read and write access only if the user is a participant in the room.
+      allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
+
+      match /messages/{messageId} {
+        // Allow a user to read and create messages only if they are a participant of the room.
+        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
+        // Deny updates and deletes on messages to preserve chat history.
+        allow update, delete: if false;
+      }
+    }
   }
 }
