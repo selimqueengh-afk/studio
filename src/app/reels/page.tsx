@@ -52,7 +52,7 @@ export default function ReelsPage() {
     } finally {
         setLoading(false);
     }
-  }, [loading, hasMore]);
+  }, [loading, hasMore, nextPageToken]);
 
   useEffect(() => {
     loadMoreReels();
@@ -209,4 +209,5 @@ export default function ReelsPage() {
     </div>
   );
 }
+
 
