@@ -1,61 +1,68 @@
 
 "use client";
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, Send } from 'lucide-react';
 import { staticReels, type StaticReel } from '@/lib/reels';
-import { ArrowLeft, PlayCircle } from 'lucide-react';
+import ShareReelSheet from '@/components/reels/ShareReelSheet';
 
-export default function ReelsGalleryPage() {
+export default function ReelsPage() {
+    const [selectedReel, setSelectedReel] = useState<StaticReel | null>(null);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-    if (!staticReels || staticReels.length === 0) {
-        return (
-            <div className="h-screen w-full bg-background flex flex-col items-center justify-center text-foreground p-4 text-center">
-                <h1 className="text-2xl font-bold mb-2">Video bulunamadı.</h1>
-                <p className="text-muted-foreground">Görüntülenecek video yok.</p>
-                 <Button asChild className="mt-4">
-                    <Link href="/chat">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Sohbete Dön
-                    </Link>
-                </Button>
-            </div>
-        );
-    }
-
+    const handleShareClick = (reel: StaticReel) => {
+        setSelectedReel(reel);
+        setIsSheetOpen(true);
+    };
+    
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">Reels</h1>
-                 <Button asChild variant="outline">
-                    <Link href="/chat">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Sohbete Dön
-                    </Link>
-                </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {staticReels.map((reel: StaticReel) => (
-                    <Link href={`/reels/${reel.id}`} key={reel.id} className="group">
-                        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black border">
+        <>
+            <div className="relative h-screen w-full bg-black overflow-hidden">
+                <div className="absolute top-4 left-4 z-20">
+                    <Button variant="ghost" size="icon" asChild>
+                        <Link href="/chat">
+                            <ArrowLeft className="h-6 w-6 text-white" />
+                        </Link>
+                    </Button>
+                </div>
+
+                <div className="h-full w-full overflow-y-auto snap-y snap-mandatory">
+                    {staticReels.map((reel) => (
+                        <section key={reel.id} className="relative h-full w-full snap-start flex items-center justify-center">
                             <video
                                 src={reel.videoUrl}
-                                preload="metadata"
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                controls
+                                loop
+                                playsInline
+                                className="w-full h-full object-contain"
                             >
                                 Tarayıcınız video etiketini desteklemiyor.
                             </video>
-                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <PlayCircle className="w-12 h-12 text-white" />
+                            <div className="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
+                                <div className="flex items-end justify-between">
+                                    <div className="max-w-[calc(100%-60px)]">
+                                        <h3 className="font-bold truncate">{reel.author}</h3>
+                                        <p className="text-sm">{reel.description}</p>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={() => handleShareClick(reel)}>
+                                        <Send className="h-6 w-6" />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="mt-2">
-                            <p className="font-semibold truncate">{reel.description}</p>
-                            <p className="text-sm text-muted-foreground">{reel.author}</p>
-                        </div>
-                    </Link>
-                ))}
+                        </section>
+                    ))}
+                </div>
             </div>
-        </div>
+
+            {selectedReel && isSheetOpen && (
+                 <ShareReelSheet
+                    reel={selectedReel}
+                    isOpen={isSheetOpen}
+                    onOpenChange={setIsSheetOpen}
+                />
+            )}
+        </>
     );
 }
