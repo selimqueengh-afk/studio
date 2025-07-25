@@ -1,68 +1,83 @@
 
-"use client";
-
-import { useState } from 'react';
+import { fetchTiktokFeed } from '@/lib/tiktok';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Send } from 'lucide-react';
-import { staticReels, type StaticReel } from '@/lib/reels';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
-export default function ReelsPage() {
-    const [selectedReel, setSelectedReel] = useState<StaticReel | null>(null);
-    const [isSheetOpen, setIsSheetOpen] = useState(false);
+async function ReelsFeed() {
+    const feed = await fetchTiktokFeed();
 
-    const handleShareClick = (reel: StaticReel) => {
-        setSelectedReel(reel);
-        setIsSheetOpen(true);
-    };
-    
+    if (!feed || feed.length === 0) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center text-white bg-black">
+                <p>Videolar yüklenemedi veya akış boş.</p>
+            </div>
+        );
+    }
+
     return (
-        <>
-            <div className="relative h-screen w-full bg-black overflow-hidden">
-                <div className="absolute top-4 left-4 z-20">
-                    <Button variant="ghost" size="icon" asChild>
-                        <Link href="/chat">
-                            <ArrowLeft className="h-6 w-6 text-white" />
-                        </Link>
-                    </Button>
-                </div>
-
-                <div className="h-full w-full overflow-y-auto snap-y snap-mandatory">
-                    {staticReels.map((reel) => (
-                        <section key={reel.id} className="relative h-full w-full snap-start flex items-center justify-center">
-                            <video
-                                src={reel.videoUrl}
-                                controls
-                                loop
-                                playsInline
-                                className="w-full h-full object-contain"
-                            >
-                                Tarayıcınız video etiketini desteklemiyor.
-                            </video>
-                            <div className="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
-                                <div className="flex items-end justify-between">
-                                    <div className="max-w-[calc(100%-60px)]">
-                                        <h3 className="font-bold truncate">{reel.author}</h3>
-                                        <p className="text-sm">{reel.description}</p>
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={() => handleShareClick(reel)}>
-                                        <Send className="h-6 w-6" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </section>
-                    ))}
-                </div>
+        <div className="relative h-screen w-full bg-black overflow-hidden">
+            <div className="absolute top-4 left-4 z-20">
+                <Button variant="ghost" size="icon" asChild>
+                    <Link href="/chat">
+                        <ArrowLeft className="h-6 w-6 text-white" />
+                    </Link>
+                </Button>
             </div>
 
-            {selectedReel && isSheetOpen && (
-                 <ShareReelSheet
-                    reel={selectedReel}
-                    isOpen={isSheetOpen}
-                    onOpenChange={setIsSheetOpen}
-                />
-            )}
-        </>
+            <div className="h-full w-full overflow-y-auto snap-y snap-mandatory">
+                {feed.map((reel) => (
+                    <section key={reel.id} className="relative h-full w-full snap-start flex items-center justify-center">
+                        <video
+                            src={reel.videoUrl}
+                            controls
+                            loop
+                            playsInline
+                            className="w-full h-full object-contain"
+                        >
+                            Tarayıcınız video etiketini desteklemiyor.
+                        </video>
+                        <div className="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
+                            <div className="flex items-end justify-between">
+                                <div className="max-w-[calc(100%-60px)] flex items-center gap-2">
+                                     <Avatar className="h-10 w-10 border-2 border-white/50">
+                                        <AvatarImage src={reel.author.avatar} />
+                                        <AvatarFallback>{getInitials(reel.author.nickname)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                     <h3 className="font-bold truncate">{reel.author.nickname}</h3>
+                                     <p className="text-sm line-clamp-2">{reel.description}</p>
+                                    </div>
+                                </div>
+                                {/* ShareReelSheet'i reel prop'u ile kullanacağız */}
+                                {/* <ShareReelSheet reel={reel}>
+                                    <Button variant="ghost" size="icon">
+                                        <Send className="h-6 w-6" />
+                                    </Button>
+                                </ShareReelSheet> */}
+                            </div>
+                        </div>
+                    </section>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export default function ReelsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-black text-white">
+                <Loader2 className="h-12 w-12 animate-spin" />
+                <p>Videolar Yükleniyor...</p>
+            </div>
+        }>
+            <ReelsFeed />
+        </Suspense>
     );
 }

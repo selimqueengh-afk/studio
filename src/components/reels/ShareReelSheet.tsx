@@ -13,7 +13,7 @@ import { Loader2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getInitials } from '@/lib/utils';
 import { createOrGetRoom } from '@/lib/rooms';
-import type { StaticReel } from '@/lib/reels';
+import { Reel } from '@/lib/tiktok';
 
 
 interface Friend {
@@ -24,7 +24,7 @@ interface Friend {
 }
 
 interface ShareReelSheetProps {
-    reel: StaticReel;
+    reel: Reel;
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
 }
@@ -70,16 +70,9 @@ export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReel
             }
             const roomId = await createOrGetRoom(currentUserInfo, friend);
             
-            const reelData: StaticReel = {
-                id: reel.id,
-                videoUrl: reel.videoUrl,
-                author: reel.author,
-                description: reel.description,
-            };
-            
             await addDoc(collection(db, 'rooms', roomId, 'messages'), {
                 type: 'reel',
-                reel: reelData,
+                reel: reel, // Pass the whole reel object
                 createdAt: serverTimestamp(),
                 userId: user.uid,
                 userName: user.displayName,

@@ -4,7 +4,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import type { StaticReel } from '@/lib/reels';
+import { Reel } from '@/lib/tiktok';
+import { getInitials } from '@/lib/utils';
 
 interface MessageProps {
   message: {
@@ -15,18 +16,12 @@ interface MessageProps {
     userName: string;
     userPhotoURL: string | null;
     type?: 'text' | 'reel';
-    reel?: StaticReel;
+    reel?: Reel;
   };
   isCurrentUser: boolean;
 }
 
 export default function Message({ message, isCurrentUser }: MessageProps) {
-  const getInitials = (name: string) =>
-    name
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('');
 
   const timestamp = message.createdAt?.toDate();
   const formattedTime = timestamp ? format(timestamp, 'HH:mm') : '';
@@ -46,7 +41,7 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
              </video>
           </div>
           <div className="p-2">
-            <p className="font-semibold text-sm truncate">{message.reel.author}</p>
+            <p className="font-semibold text-sm truncate">@{message.reel.author.nickname}</p>
             <p className="text-xs text-muted-foreground truncate">{message.reel.description}</p>
           </div>
         </div>

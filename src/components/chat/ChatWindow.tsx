@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
 import Link from 'next/link';
 import { createOrGetRoom } from '@/lib/rooms';
-import { StaticReel } from '@/lib/reels';
+import { Reel } from '@/lib/tiktok';
 
 
 interface MessageData {
@@ -33,14 +33,14 @@ interface MessageData {
   userName: string;
   userPhotoURL: string | null;
   type?: 'text' | 'reel';
-  reel?: StaticReel;
+  reel?: Reel;
 }
 
 interface RoomData {
   name: string;
   creatorId: string;
   isDirectMessage?: boolean;
-  participants?: { [key: string]: boolean };
+  participants?: { [key:string]: boolean };
   participantNames?: { [key: string]: string };
   participantPhotos?: { [key: string]: string | null };
 }
