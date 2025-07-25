@@ -6,39 +6,37 @@ export interface StaticReel {
     description: string;
 }
 
-// Sourced from Pexels, which provides free-to-use videos.
-// Updated to be more humorous and gaming-oriented per user request.
-// ---
-// UPDATED: Replaced potentially expired Pexels URLs with stable, standard test video URLs to fix loading issues.
+// Sourced from various free-to-use video sites.
+// Updated to be more humorous and gaming-oriented to match user expectations.
 export const staticReels: StaticReel[] = [
     {
         id: 'sample-1',
-        videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-man-in-a-suit-works-on-a-computer-at-the-office-340-large.mp4',
         author: '@oyun_canavari',
         description: 'Roblox parkur denemem (sonu komik bitti)'
     },
     {
         id: 'sample-2',
-        videoUrl: 'https://test-videos.co.uk/vids/elephantsdream/mp4/h264/360/Elephants_Dream_360_10s_1MB.mp4',
+        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-a-blouse-making-funny-faces-4299-large.mp4',
         author: '@dans_kraliçesi',
         description: 'Bu yeni dans akımını deneyen var mı? #challenge'
     },
     {
         id: 'sample-3',
-        videoUrl: 'https://test-videos.co.uk/vids/jellyfish/mp4/h264/360/Jellyfish_360_10s_1MB.mp4',
+        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-man-dancing-happy-in-the-forest-4293-large.mp4',
         author: '@şakacı_çocuk',
         description: 'Arkadaşıma yaptığım efsane şaka hehe'
     },
     {
         id: 'sample-4',
-        videoUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/360/Sintel_360_10s_1MB.mp4',
+        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-gamers-playing-a-console-game-4296-large.mp4',
         author: '@gamer_bro',
         description: 'Oyun oynarken ben'
     },
      {
         id: 'sample-5',
-        videoUrl: 'https://test-videos.co.uk/vids/surfing/mp4/h264/360/Surfing_360_10s_1MB.mp4',
+        videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-very-happy-puppy-in-a-park-232-large.mp4',
         author: '@sevimli_dostlar',
-        description: 'Bu kedi tam bir komedyen!'
+        description: 'Bu köpek tam bir komedyen!'
     }
 ];
