@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Send, AlertTriangle, VolumeX, Volume2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
-import { useToast } from '@/hooks/use-toast';
 import { getYoutubeShorts, type Reel } from '@/lib/youtube';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +22,6 @@ export default function ReelsPage() {
 
   const router = useRouter();
   const observer = useRef<IntersectionObserver | null>(null);
-  const { toast } = useToast();
 
   const loadMoreReels = useCallback(async (token?: string) => {
     if (loading || !hasMore) return;
@@ -31,7 +29,13 @@ export default function ReelsPage() {
     setError(null);
 
     try {
-      const { reels: newReels, nextPageToken: newNextPageToken } = await getYoutubeShorts(token);
+      const { reels: newReels, nextPageToken: newNextPageToken, error: apiError } = await getYoutubeShorts(token);
+      
+      if (apiError) {
+        setError(apiError);
+        setHasMore(false);
+        return;
+      }
       
       setReels(prev => {
         const existingIds = new Set(prev.map(r => r.id));
@@ -105,15 +109,12 @@ export default function ReelsPage() {
   };
 
   const renderContent = () => {
-    if (error) {
+    if (error && reels.length === 0) {
       return (
         <div className="h-full w-full flex flex-col items-center justify-center text-white p-4 text-center bg-black">
           <AlertTriangle className="w-16 h-16 text-destructive mb-4" />
           <h2 className="text-xl font-bold mb-2">Bir Hata Oluştu</h2>
           <p className="max-w-sm text-muted-foreground">{error}</p>
-          <p className="max-w-sm text-muted-foreground mt-4 text-xs">
-            Bu, genellikle bir API anahtarının eksik veya yanlış olduğu anlamına gelir. Lütfen geliştirici talimatlarını kontrol edin.
-          </p>
         </div>
       );
     }
@@ -194,12 +195,12 @@ export default function ReelsPage() {
     <div className="h-[100svh] w-full max-w-md mx-auto bg-black overflow-y-scroll snap-y snap-mandatory relative">
       {renderContent()}
       {loading && (
-        <div className="h-full w-full snap-center flex items-center justify-center text-white absolute bottom-0">
+        <div className="h-full w-full snap-center flex items-center justify-center text-white absolute bottom-0 bg-black/50">
           <Loader2 className="w-12 h-12 animate-spin" />
         </div>
       )}
-      {!loading && !hasMore && reels.length > 0 && (
-         <div className="h-24 w-full flex items-center justify-center text-white/70 absolute bottom-0">
+      {!loading && !hasMore && reels.length > 0 && !error && (
+         <div className="h-24 w-full flex items-center justify-center text-white/70 absolute bottom-0 pointer-events-none">
             <p>Daha fazla video yok.</p>
         </div>
       )}

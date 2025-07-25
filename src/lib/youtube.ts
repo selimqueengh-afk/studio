@@ -20,10 +20,10 @@ const youtube = google.youtube({
   auth: YOUTUBE_API_KEY,
 });
 
-export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Reel[], nextPageToken?: string }> {
+export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Reel[], nextPageToken?: string, error?: string }> {
   try {
     if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === "YOUR_API_KEY_HERE") {
-      throw new Error("YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin veya kodu doğrudan düzenleyin.");
+      return { reels: [], error: "YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin veya kodu doğrudan düzenleyin." };
     }
     
     const response = await youtube.search.list({
@@ -56,11 +56,11 @@ export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Ree
   } catch (error: any) {
     console.error('Error fetching YouTube shorts:', JSON.stringify(error, null, 2));
     if (error.code === 403 || (error.errors && error.errors[0]?.reason.includes('quotaExceeded'))) {
-       throw new Error("YouTube API kotası aşıldı. Lütfen Google Cloud Console'u kontrol edin veya daha sonra tekrar deneyin.");
+       return { reels: [], error: "YouTube API kotası aşıldı. Lütfen Google Cloud Console'u kontrol edin veya daha sonra tekrar deneyin." };
     }
      if (error.code === 400 || (error.errors && error.errors[0]?.reason.includes('keyInvalid'))) {
-       throw new Error("Sağlanan YouTube API anahtarı geçersiz. Lütfen anahtarınızı kontrol edin.");
+        return { reels: [], error: "Sağlanan YouTube API anahtarı geçersiz. Lütfen anahtarınızı kontrol edin." };
     }
-    throw new Error('YouTube videoları getirilirken genel bir hata oluştu.');
+    return { reels: [], error: 'YouTube videoları getirilirken genel bir hata oluştu.' };
   }
 }
