@@ -11,8 +11,6 @@ export interface Reel {
   description: string;
 }
 
-// TEMPORARY FIX: Using the key directly to bypass environment variable issues.
-// This is not recommended for production.
 const YOUTUBE_API_KEY = "AIzaSyA-fOSZR_D_I5F4OS_TVT_HwEgkZI5GgrY";
 
 const youtube = google.youtube({
@@ -20,18 +18,33 @@ const youtube = google.youtube({
   auth: YOUTUBE_API_KEY,
 });
 
+const searchQueries = [
+    'roblox sigma', 
+    '"roblox funny"', 
+    '"roblox egor"', 
+    '"GigaChad"',
+    '"manface roblox"'
+];
+const orderOptions: ('relevance' | 'viewCount' | 'date')[] = ['relevance', 'viewCount', 'date'];
+
+
 export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Reel[], nextPageToken?: string, error?: string }> {
   try {
     if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === "YOUR_API_KEY_HERE") {
       return { reels: [], error: "YouTube API anahtarı eksik veya geçersiz. Lütfen .env.local dosyanıza YOUTUBE_API_KEY ekleyin veya kodu doğrudan düzenleyin." };
     }
     
+    // Select a random query and order for each request to get fresh content
+    const randomQuery = searchQueries[Math.floor(Math.random() * searchQueries.length)];
+    const randomOrder = orderOptions[Math.floor(Math.random() * orderOptions.length)];
+
     const response = await youtube.search.list({
       part: ['snippet'],
-      q: 'roblox sigma | "roblox funny" | "roblox egor" | "GigaChad"',
+      q: randomQuery,
       type: ['video'],
       maxResults: 10,
       videoDuration: 'short',
+      order: randomOrder,
       pageToken: pageToken,
     });
 
