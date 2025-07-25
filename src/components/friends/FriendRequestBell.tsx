@@ -20,7 +20,7 @@ import { acceptFriendRequest, rejectFriendRequest } from '@/lib/friends';
 interface FriendRequest {
   id: string;
   from: string;
-  fromName: string;
+  fromName: string | null;
   fromPhoto: string | null;
   to: string;
   toName: string | null;
@@ -59,20 +59,21 @@ export default function FriendRequestBell() {
   const handleAccept = async (request: FriendRequest) => {
     if (!user) return;
     setActionLoading(request.id);
+    
     const fromUser = { 
         uid: request.from, 
         displayName: request.fromName, 
-        photoURL: request.fromPhoto || undefined 
+        photoURL: request.fromPhoto || null
     };
     const toUser = { 
         uid: user.uid, 
         displayName: user.displayName, 
-        photoURL: user.photoURL || undefined
+        photoURL: user.photoURL || null
     };
 
     try {
       await acceptFriendRequest(request.id, fromUser, toUser);
-      toast({ title: 'Başarılı', description: `${request.fromName} artık arkadaşın.` });
+      toast({ title: 'Başarılı', description: `${request.fromName || 'Kullanıcı'} artık arkadaşın.` });
     } catch (error: any) {
       console.error("Accept error:", error);
       toast({ variant: 'destructive', title: 'Hata', description: error.message || 'İstek kabul edilemedi.' });
@@ -122,16 +123,27 @@ export default function FriendRequestBell() {
               <div key={req.id} className="flex flex-col p-2 rounded-lg hover:bg-secondary">
                  <div className="flex items-center gap-3">
                     <Avatar>
-                        <AvatarImage src={req.fromPhoto || undefined} alt={req.fromName} />
-                        <AvatarFallback>{getInitials(req.fromName)}</AvatarFallback>
+                        <AvatarImage src={req.fromPhoto || undefined} alt={req.fromName || ''} />
+                        <AvatarFallback>{getInitials(req.fromName || 'Bilinmeyen Kullanıcı')}</AvatarFallback>
                     </Avatar>
                     <p className="flex-1 font-semibold truncate">{req.fromName || 'Bilinmeyen Kullanıcı'}</p>
                  </div>
                  <div className="flex gap-2 mt-2 self-end">
-                    <Button size="sm" onClick={() => handleAccept(req)} disabled={actionLoading === req.id}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAccept(req)} 
+                      disabled={actionLoading === req.id}
+                      className="w-[44px]"
+                    >
                         {actionLoading === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleReject(req.id)} disabled={actionLoading === req.id}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleReject(req.id)} 
+                      disabled={actionLoading === req.id}
+                      className="w-[44px]"
+                    >
                         {actionLoading === req.id ? <Loader2 className="animate-spin h-4 w-4" /> : <UserX className="h-4 w-4" />}
                     </Button>
                  </div>
