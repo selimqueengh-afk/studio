@@ -1,5 +1,6 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
@@ -9,40 +10,22 @@ service cloud.firestore {
     function isUser(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    // Rules for the 'users' collection
+    
     match /users/{userId} {
-      // Allow any signed-in user to list and read all user profiles for the 'find-friends' page.
-      // Allow a user to update only their own profile.
-      allow list, read: if isSignedIn();
+      allow read, list: if isSignedIn();
       allow update: if isUser(userId);
-      // Deny create and delete operations on user profiles for security.
-      allow create, delete: if false;
-
-      // Allow access to the 'friends' subcollection
-      match /friends/{friendId} {
-        allow read, list: if isUser(userId);
-        allow create, update, delete: if isUser(userId);
-      }
     }
-
-    // Rules for the 'friendRequests' collection
+    
     match /friendRequests/{requestId} {
-      // Allow a request to be read, updated, or deleted only by the sender or the receiver.
-      allow read, update, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);
-      // Allow a request to be created only by the user who is sending it.
-      allow create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
+      allow read, update, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
     }
-
-    // Rules for chat rooms and messages
+    
     match /rooms/{roomId} {
-      // Allow read and write access only if the user is a participant in the room.
       allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
-
+      
       match /messages/{messageId} {
-        // Allow a user to read and create messages only if they are a participant of the room.
         allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        // Deny updates and deletes on messages to preserve chat history.
         allow update, delete: if false;
       }
     }
