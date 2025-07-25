@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
 import Link from 'next/link';
 import { createOrGetRoom } from '@/lib/rooms';
+import { StaticReel } from '@/lib/reels';
 
 
 interface MessageData {
@@ -31,7 +32,8 @@ interface MessageData {
   userId: string;
   userName: string;
   userPhotoURL: string | null;
-  type?: 'text';
+  type?: 'text' | 'reel';
+  reel?: StaticReel;
 }
 
 interface RoomData {

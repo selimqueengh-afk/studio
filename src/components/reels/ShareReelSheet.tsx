@@ -13,7 +13,7 @@ import { Loader2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getInitials } from '@/lib/utils';
 import { createOrGetRoom } from '@/lib/rooms';
-import type { Reel } from '@/lib/youtube';
+import type { StaticReel } from '@/lib/reels';
 
 
 interface Friend {
@@ -24,7 +24,7 @@ interface Friend {
 }
 
 interface ShareReelSheetProps {
-    reel: Reel;
+    reel: StaticReel;
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
 }
@@ -70,11 +70,10 @@ export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReel
             }
             const roomId = await createOrGetRoom(currentUserInfo, friend);
             
-            const reelData: Reel = {
+            const reelData: StaticReel = {
                 id: reel.id,
-                thumbnailUrl: reel.thumbnailUrl,
-                author: reel.author,
                 videoUrl: reel.videoUrl,
+                author: reel.author,
                 description: reel.description,
             };
             
