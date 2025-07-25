@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
 import type { Reel } from '@/lib/youtube';
 import Link from 'next/link';
+import { createOrGetRoom } from '@/lib/rooms';
 
 
 interface MessageData {
@@ -60,10 +61,29 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (!user?.uid) return;
 
-    const fetchRoom = async () => {
+    const setupChat = async () => {
       setLoading(true);
       try {
-        const roomDoc = await getDoc(doc(db, 'rooms', roomId));
+        let roomDoc = await getDoc(doc(db, 'rooms', roomId));
+        
+        // "Lazy" room creation: if the room doesn't exist, create it now.
+        if (!roomDoc.exists()) {
+            const participantIds = roomId.split('_');
+            const otherUserId = participantIds.find(id => id !== user.uid);
+            if (!otherUserId) {
+                throw new Error("Invalid room ID for room creation.");
+            }
+            const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
+            if (!otherUserDoc.exists()) {
+                 throw new Error("Chat participant not found.");
+            }
+            
+            await createOrGetRoom(user, otherUserDoc.data());
+            // Fetch the room doc again after creation
+            roomDoc = await getDoc(doc(db, 'rooms', roomId));
+        }
+
+
         if (roomDoc.exists()) {
           const roomData = roomDoc.data() as RoomData;
            if (roomData.participants && !roomData.participants[user.uid]) {
@@ -75,35 +95,46 @@ export default function ChatWindow({ roomId }: { roomId: string }) {
         } else {
           toast({ variant: 'destructive', title: 'Hata', description: 'Sohbet odası bulunamadı.' });
           router.push('/chat');
+          return; // Stop execution if room isn't found even after trying to create
         }
       } catch (error) {
-          console.error("Error fetching room: ", error);
+          console.error("Error fetching or creating room: ", error);
           toast({ variant: 'destructive', title: 'Hata', description: 'Sohbet odası yüklenemedi.' });
           router.push('/chat');
+          return;
       }
+
+      // If setup is successful, listen for messages
+      const q = query(
+        collection(db, 'rooms', roomId, 'messages'),
+        orderBy('createdAt', 'asc')
+      );
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const msgs = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as MessageData[];
+        setMessages(msgs);
+        setLoading(false); // Set loading to false only after messages are loaded
+      }, (error) => {
+        console.error("Mesajlar alınırken hata oluştu: ", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Mesajlar yüklenemedi.' });
+        setLoading(false);
+      });
+
+      return unsubscribe;
     };
     
-    fetchRoom();
+    const unsubscribePromise = setupChat();
 
-    const q = query(
-      collection(db, 'rooms', roomId, 'messages'),
-      orderBy('createdAt', 'asc')
-    );
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const msgs = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as MessageData[];
-      setMessages(msgs);
-      setLoading(false);
-    }, (error) => {
-      console.error("Mesajlar alınırken hata oluştu: ", error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'Mesajlar yüklenemedi.' });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [roomId, router, toast, user?.uid]);
+    return () => {
+        unsubscribePromise.then(unsub => {
+            if (unsub) {
+                unsub();
+            }
+        })
+    };
+  }, [roomId, router, toast, user]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {

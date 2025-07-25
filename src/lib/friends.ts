@@ -94,9 +94,6 @@ export const acceptFriendRequest = async (
   batch.delete(requestDocRef);
 
   await batch.commit();
-  
-  // Proactively create the chat room AFTER the batch has been committed.
-  await createOrGetRoom(toUser, fromUser);
 };
 
 export const rejectFriendRequest = async (requestId: string) => {
