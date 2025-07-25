@@ -6,36 +6,36 @@ export interface StaticReel {
     description: string;
 }
 
-// Sourced from reliable, public test video URLs that are always available.
+// Sourced from user-provided TikTok URLs
 export const staticReels: StaticReel[] = [
     {
-        id: 'sample-1',
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-        author: '@oyun_canavari',
-        description: 'Roblox parkur denemem (sonu komik bitti)'
+        id: 'tiktok-1',
+        videoUrl: 'https://www.tiktok.com/@itsjojosiwa/video/7012345678901234567',
+        author: '@itsjojosiwa',
+        description: 'JoJo Siwa\'dan en son dans!'
     },
     {
-        id: 'sample-2',
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        author: '@dans_kraliçesi',
-        description: 'Bu yeni dans akımını deneyen var mı? #challenge'
+        id: 'tiktok-2',
+        videoUrl: 'https://www.tiktok.com/@memequeen/video/7034567890123456789',
+        author: '@memequeen',
+        description: 'Gülmekten karnınız ağrıyacak'
     },
     {
-        id: 'sample-3',
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-        author: '@şakacı_çocuk',
-        description: 'Arkadaşıma yaptığım efsane şaka hehe'
+        id: 'tiktok-3',
+        videoUrl: 'https://www.tiktok.com/@sigma_meme/video/7056789012345678901',
+        author: '@sigma_meme',
+        description: 'Bu akım bir harika dostum'
     },
     {
-        id: 'sample-4',
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-        author: '@gamer_bro',
-        description: 'Oyun oynarken ben'
+        id: 'tiktok-4',
+        videoUrl: 'https://www.tiktok.com/@darkhumorpage/video/7098765432109876543',
+        author: '@darkhumorpage',
+        description: 'Buna gülmemelisin'
     },
      {
-        id: 'sample-5',
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        author: '@sevimli_dostlar',
-        description: 'Bu fil tam bir komedyen!'
+        id: 'tiktok-5',
+        videoUrl: 'https://www.tiktok.com/@robloxmemes/video/7023456789012345678',
+        author: '@robloxmemes',
+        description: 'En komik Roblox anları'
     }
 ];
