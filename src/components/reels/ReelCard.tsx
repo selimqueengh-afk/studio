@@ -17,7 +17,7 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
     }
 
     const cardContent = (
-         <div className={cn("relative w-full h-full", isShared ? 'aspect-[9/16]' : '')}>
+         <div className={cn("relative w-full h-full", isShared ? 'aspect-video' : 'h-full')}>
             {reel.videoUrl ? (
                 <video 
                     key={reel.videoUrl}
@@ -28,7 +28,7 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
                     playsInline
                     className="w-full h-full object-cover"
                 >
-                    Your browser does not support the video tag.
+                    Tarayıcınız video etiketini desteklemiyor.
                 </video>
             ) : (
                 <div className="w-full h-full bg-secondary flex items-center justify-center">
@@ -44,7 +44,12 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
     );
 
     return (
-        <div className={cn("bg-black overflow-hidden transition-shadow w-full h-full", isShared ? "w-64 rounded-lg border" : "aspect-[9/16] max-h-full")}>
+        <div className={cn(
+            "bg-black overflow-hidden transition-shadow", 
+            isShared 
+                ? "w-64 rounded-lg border" 
+                : "h-full w-full"
+        )}>
            {isShared ? (
              <a href={reel.videoUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full cursor-pointer">
                {cardContent}
