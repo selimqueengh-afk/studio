@@ -3,47 +3,40 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
+    
     function isUser(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // USERS
-    // Allow signed-in users to list all users (for find-friends page).
-    // Allow users to read any profile.
-    // Allow users to only update their own profile.
     match /users/{userId} {
-      allow list, read: if isSignedIn();
+      // Allow signed-in users to read and list all user profiles for finding friends.
+      // Allow a user to only update their own profile.
+      allow read, list: if isSignedIn();
       allow update: if isUser(userId);
 
-      // FRIENDS SUBCOLLECTION
-      // Allow users to only list and read their own friends.
+      // Allow a user to read their own friends list.
       match /friends/{friendId} {
-        allow list, read: if isUser(userId);
+        allow read, list: if isUser(userId);
       }
     }
-
-    // FRIEND REQUESTS
-    // Allow creating a request if it's from the signed-in user.
-    // Allow reading/deleting a request if the user is the sender or receiver.
-    match /friendRequests/{requestId} {
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
-      allow read, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
-    }
     
-    // ROOMS
-    // Allow reading/writing to a room if the user is a participant.
+    match /friendRequests/{requestId} {
+      // Allow a user to create a request if they are the sender.
+      // Allow a user to read, update, or delete a request if they are the sender or receiver.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
+      allow read, update, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
+    }
+
     match /rooms/{roomId} {
+      // Allow read and write access if the user is a participant in the room.
       allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
 
-      // MESSAGES SUBCOLLECTION
-      // Allow reading/creating messages if the user is in the room.
-      // No updates or deletes allowed.
       match /messages/{messageId} {
+        // Allow users to read and create messages in rooms they are a part of.
+        // Disallow updating or deleting messages.
         allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
         allow update, delete: if false;
       }
