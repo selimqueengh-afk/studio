@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, onSnapshot, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -43,55 +43,43 @@ export default function FindFriendsPage() {
             return;
         }
 
-        const fetchAllData = async () => {
-            setLoading(true);
-            try {
-                // 1. Get all users
-                const usersQuery = query(collection(db, 'users'));
-                const usersSnapshot = await getDocs(usersQuery);
-                const usersData = usersSnapshot.docs
-                    .map(doc => ({ ...doc.data(), uid: doc.id } as User))
-                    .filter(u => u.uid !== currentUser.uid);
-                setAllUsers(usersData);
+        setLoading(true);
+        // 1. Fetch all users except the current one
+        const usersQuery = query(collection(db, 'users'), where('uid', '!=', currentUser.uid));
 
-                // 2. Get current user's friends and sent requests
-                const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
-                const requestsQuery = query(collection(db, 'friendRequests'));
+        // 2. Set up a listener for the users
+        const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
+            const usersData = snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as User));
+            setAllUsers(usersData);
+
+            // 3. For each user, determine the friendship status
+            usersData.forEach(async (user) => {
+                setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'loading' }));
                 
-                const [friendsSnapshot, requestsSnapshot] = await Promise.all([
-                    getDocs(friendsQuery),
-                    getDocs(requestsQuery),
+                const friendDocRef = doc(db, `users/${currentUser.uid}/friends/${user.uid}`);
+                const sentRequestDocRef = doc(db, `friendRequests/${currentUser.uid}_${user.uid}`);
+
+                const [friendSnap, sentSnap] = await Promise.all([
+                    getDoc(friendDocRef),
+                    getDoc(sentRequestDocRef)
                 ]);
 
-                const friendUids = new Set(friendsSnapshot.docs.map(doc => doc.id));
-                const sentRequestUids = new Set(requestsSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return data.from?.uid === currentUser.uid ? data.to?.uid : null;
-                }).filter(Boolean));
+                if (friendSnap.exists()) {
+                    setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'friends' }));
+                } else if (sentSnap.exists()) {
+                    setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'request_sent' }));
+                } else {
+                    setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'not_friends' }));
+                }
+            });
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching users:", error);
+            toast({ variant: 'destructive', title: 'Hata', description: 'Kullanıcılar yüklenemedi.' });
+            setLoading(false);
+        });
 
-
-                // 3. Set initial statuses
-                const statuses: Record<string, FriendshipStatus> = {};
-                usersData.forEach(user => {
-                    if (friendUids.has(user.uid)) {
-                        statuses[user.uid] = 'friends';
-                    } else if (sentRequestUids.has(user.uid)) {
-                        statuses[user.uid] = 'request_sent';
-                    } else {
-                        statuses[user.uid] = 'not_friends';
-                    }
-                });
-                setFriendshipStatuses(statuses);
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                toast({ variant: 'destructive', title: 'Hata', description: 'Kullanıcı verileri yüklenemedi.' });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAllData();
+        return () => unsubscribe();
 
     }, [currentUser, authLoading, toast]);
 
