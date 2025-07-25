@@ -32,7 +32,7 @@ export const sendFriendRequest = async (fromUid: string, toUid: string) => {
 
   const inverseRequestSnap = await getDoc(inverseRequestRef);
   // If an inverse request exists, it means the other user already sent us a request.
-  // We can just accept it.
+  // We can just accept it. The original sender is 'toUid' in this context.
   if (inverseRequestSnap.exists()) {
     await acceptFriendRequest(toUid, fromUid);
     return;
