@@ -26,7 +26,7 @@ export default function ReelsPage() {
   }
 
   return (
-    <div className="relative h-screen w-full overflow-y-auto snap-y snap-mandatory">
+    <div className="relative h-screen w-full bg-black overflow-y-scroll snap-y snap-mandatory">
       {/* Header (Back Button) */}
       <div className="absolute top-4 left-4 z-20">
         <Button
@@ -42,7 +42,7 @@ export default function ReelsPage() {
       </div>
 
       {reels.map((reel) => (
-        <section key={reel.id} className="relative h-screen w-full snap-start flex items-center justify-center bg-black">
+        <section key={reel.id} className="relative h-screen w-full snap-start flex items-center justify-center">
           <div className="absolute bottom-20 right-2 z-20 flex flex-col gap-4">
               <Button variant="ghost" size="icon" className="text-white flex flex-col h-auto gap-1">
                   <ThumbsUp className="w-8 h-8"/>

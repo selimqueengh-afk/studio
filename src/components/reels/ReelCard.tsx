@@ -36,7 +36,7 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
                 </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
-            <div className="absolute bottom-4 left-4 text-white max-w-[calc(100%-4rem)]">
+            <div className="absolute bottom-4 left-4 text-white max-w-[calc(100%-4rem)] p-4">
                 <p className="font-bold text-lg truncate drop-shadow-lg">{reel.author}</p>
                 <p className="text-sm truncate drop-shadow-md">{reel.description}</p>
             </div>
@@ -45,10 +45,10 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
 
     return (
         <div className={cn(
-            "bg-black overflow-hidden transition-shadow", 
+            "bg-black overflow-hidden transition-shadow w-full h-full", 
             isShared 
-                ? "w-64 rounded-lg border" 
-                : "h-full w-full"
+                ? "w-64 rounded-lg border aspect-video" 
+                : "w-full h-full"
         )}>
            {isShared ? (
              <a href={reel.videoUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full cursor-pointer">
