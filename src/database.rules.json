@@ -7,9 +7,49 @@
       "databases": {
         "{database}": {
           "documents": {
-            "{document=**}": {
-              "allow": "read, write",
-              "if": "request.auth != null"
+            "function": [
+              "isSignedIn() {",
+              "      return request.auth != null;",
+              "    }",
+              "isUser(userId) {",
+              "      return isSignedIn() && request.auth.uid == userId;",
+              "    }"
+            ],
+            "users": {
+              "{userId}": {
+                ".read": "isSignedIn()",
+                ".list": "isSignedIn()",
+                ".update": "isUser(userId)",
+                "friends": {
+                  "{friendId}": {
+                    ".read": "isUser(userId)",
+                    ".list": "isUser(userId)",
+                    ".create": "isUser(userId)",
+                    ".delete": "isUser(userId)"
+                  }
+                }
+              }
+            },
+            "friendRequests": {
+              "{requestId}": {
+                ".read": "isSignedIn()",
+                ".create": "isSignedIn() && request.resource.data.from.uid == request.auth.uid",
+                ".delete": "isSignedIn()"
+              }
+            },
+            "rooms": {
+              "{roomId}": {
+                ".read": "isSignedIn() && resource.data.participants[request.auth.uid] == true",
+                ".write": "isSignedIn() && resource.data.participants[request.auth.uid] == true",
+                "messages": {
+                  "{messageId}": {
+                    ".read": "isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true",
+                    ".create": "isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true",
+                    ".update": "false",
+                    ".delete": "false"
+                  }
+                }
+              }
             }
           }
         }
