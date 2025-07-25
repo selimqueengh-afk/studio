@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ interface User {
 type FriendshipStatus = 'not_friends' | 'friends' | 'request_sent' | 'loading';
 
 export default function FindFriendsPage() {
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     
@@ -38,52 +38,59 @@ export default function FindFriendsPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        if (!currentUser) {
+        if (authLoading || !currentUser) {
             setLoading(false);
             return;
         }
 
-        const usersCol = collection(db, 'users');
-        const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
-            const usersData = snapshot.docs
-              .map(doc => ({ ...doc.data(), uid: doc.id } as User))
-              .filter(u => u.uid !== currentUser.uid);
-            setAllUsers(usersData);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching users: ", error);
-            setLoading(false);
-        });
+        const fetchAllData = async () => {
+            setLoading(true);
+            try {
+                // 1. Get all users
+                const usersQuery = query(collection(db, 'users'));
+                const usersSnapshot = await getDocs(usersQuery);
+                const usersData = usersSnapshot.docs
+                    .map(doc => ({ ...doc.data(), uid: doc.id } as User))
+                    .filter(u => u.uid !== currentUser.uid);
+                setAllUsers(usersData);
 
-        return () => unsubscribeUsers();
-    }, [currentUser]);
+                // 2. Get current user's friends and sent requests
+                const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
+                const requestsQuery = query(collection(db, 'friendRequests'), where => where('from.uid', '==', currentUser.uid));
+                
+                const [friendsSnapshot, requestsSnapshot] = await Promise.all([
+                    getDocs(friendsQuery),
+                    getDocs(requestsQuery),
+                ]);
 
-    useEffect(() => {
-        if (!currentUser || allUsers.length === 0) return;
+                const friendUids = new Set(friendsSnapshot.docs.map(doc => doc.id));
+                const sentRequestUids = new Set(requestsSnapshot.docs.map(doc => (doc.data().to as UserInfo).uid));
 
-        const unsubs: (() => void)[] = [];
-        allUsers.forEach(user => {
-            const friendRef = doc(db, `users/${currentUser.uid}/friends/${user.uid}`);
-            const requestRef = doc(db, 'friendRequests', `${currentUser.uid}_${user.uid}`);
+                // 3. Set initial statuses
+                const statuses: Record<string, FriendshipStatus> = {};
+                usersData.forEach(user => {
+                    if (friendUids.has(user.uid)) {
+                        statuses[user.uid] = 'friends';
+                    } else if (sentRequestUids.has(user.uid)) {
+                        statuses[user.uid] = 'request_sent';
+                    } else {
+                        statuses[user.uid] = 'not_friends';
+                    }
+                });
+                setFriendshipStatuses(statuses);
 
-            const unsub = onSnapshot(doc(db, 'users', currentUser.uid), async () => {
-                const friendSnap = await getDoc(friendRef);
-                const requestSnap = await getDoc(requestRef);
-                setFriendshipStatuses(prev => ({
-                    ...prev,
-                    [user.uid]: friendSnap.exists() 
-                                ? 'friends' 
-                                : requestSnap.exists() 
-                                ? 'request_sent' 
-                                : 'not_friends'
-                }));
-            });
-            unsubs.push(unsub);
-        });
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                toast({ variant: 'destructive', title: 'Hata', description: 'Kullanıcı verileri yüklenemedi.' });
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        return () => unsubs.forEach(unsub => unsub());
+        fetchAllData();
 
-    }, [allUsers, currentUser]);
+    }, [currentUser, authLoading, toast]);
+
 
     useEffect(() => {
         const filtered = allUsers.filter(user =>
@@ -113,8 +120,9 @@ export default function FindFriendsPage() {
 
     const renderButton = (user: User) => {
         const status = friendshipStatuses[user.uid] || 'loading';
+        const isLoading = status === 'loading' || actionLoading === user.uid;
 
-        if (status === 'loading' || actionLoading === user.uid) {
+        if (isLoading) {
             return (
                 <Button size="sm" disabled>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -189,4 +197,10 @@ export default function FindFriendsPage() {
             )}
         </div>
     );
+}
+
+interface UserInfo {
+  uid: string;
+  displayName: string;
+  photoURL?: string | null;
 }
