@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, DocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,7 +37,7 @@ export default function ProfilePage() {
   const checkFriendshipStatus = useCallback(async () => {
     if (!currentUser || !userId) return;
 
-    // Check if they are friends
+    // 1. Check if they are friends
     const friendRef = doc(db, `users/${currentUser.uid}/friends/${userId}`);
     const friendSnap = await getDoc(friendRef);
     if (friendSnap.exists()) {
@@ -45,7 +45,7 @@ export default function ProfilePage() {
       return;
     }
 
-    // Check for sent request
+    // 2. Check for sent request
     const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
     const sentSnap = await getDoc(sentRequestRef);
     if (sentSnap.exists()) {
@@ -53,7 +53,7 @@ export default function ProfilePage() {
       return;
     }
 
-    // Check for received request
+    // 3. Check for received request
     const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
     const receivedSnap = await getDoc(receivedRequestRef);
     if (receivedSnap.exists()) {
@@ -61,6 +61,7 @@ export default function ProfilePage() {
       return;
     }
 
+    // 4. If none of the above, they are not connected
     setFriendshipStatus('none');
 
   }, [currentUser, userId]);
@@ -68,33 +69,34 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!userId) return;
-
     setLoading(true);
     const docRef = doc(db, 'users', userId);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    const unsubscribeUser = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
-        console.log('No such document!');
+        console.log('No such user document!');
         setProfile(null);
       }
       setLoading(false);
     });
     
-    return () => unsubscribe();
+    return () => unsubscribeUser();
   }, [userId]);
   
   useEffect(() => {
     if (currentUser && userId) {
-        // We still need a listener on the requests to update the UI in realtime
-        // if the other user accepts/rejects. So we combine getDoc for initial load
+        // We still need a listener on the requests and friendship status to update the UI in realtime
+        // if the other user accepts/rejects or removes friend.
+        // We combine getDoc for initial load
         // and onSnapshot for realtime updates.
         checkFriendshipStatus(); // Initial check
 
         const unsubscribes = [
             onSnapshot(doc(db, `friendRequests/${currentUser.uid}_${userId}`), checkFriendshipStatus),
             onSnapshot(doc(db, `friendRequests/${userId}_${currentUser.uid}`), checkFriendshipStatus),
-            onSnapshot(doc(db, `users/${currentUser.uid}/friends/${userId}`), checkFriendshipStatus)
+            onSnapshot(doc(db, `users/${currentUser.uid}/friends/${userId}`), checkFriendshipStatus),
+            onSnapshot(doc(db, `users/${userId}/friends/${currentUser.uid}`), checkFriendshipStatus)
         ];
 
         return () => unsubscribes.forEach(unsub => unsub());
