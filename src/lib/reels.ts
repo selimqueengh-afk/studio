@@ -7,35 +7,36 @@ export interface StaticReel {
 }
 
 // Sourced from Pexels, which provides free-to-use videos.
+// Updated to be more humorous and gaming-oriented per user request.
 export const staticReels: StaticReel[] = [
     {
         id: 'pexels-1',
-        videoUrl: 'https://videos.pexels.com/video-files/853835/853835-hd.mp4',
-        author: '@kelly',
-        description: 'Doğada huzurlu bir an'
+        videoUrl: 'https://videos.pexels.com/video-files/7578544/7578544-hd.mp4',
+        author: '@oyun_canavari',
+        description: 'Roblox parkur denemem (sonu komik bitti)'
     },
     {
         id: 'pexels-2',
-        videoUrl: 'https://videos.pexels.com/video-files/4434246/4434246-hd.mp4',
-        author: '@mikhail',
-        description: 'Şehrin ışıkları altında gece yolculuğu'
+        videoUrl: 'https://videos.pexels.com/video-files/8024935/8024935-hd.mp4',
+        author: '@dans_kraliçesi',
+        description: 'Bu yeni dans akımını deneyen var mı? #challenge'
     },
     {
         id: 'pexels-3',
-        videoUrl: 'https://videos.pexels.com/video-files/855321/855321-hd.mp4',
-        author: '@jill',
-        description: 'Okyanusun dinlendirici dalgaları'
+        videoUrl: 'https://videos.pexels.com/video-files/5960076/5960076-hd.mp4',
+        author: '@şakacı_çocuk',
+        description: 'Arkadaşıma yaptığım efsane şaka hehe'
     },
     {
         id: 'pexels-4',
-        videoUrl: 'https://videos.pexels.com/video-files/4690623/4690623-hd.mp4',
-        author: '@peter',
-        description: 'Lezzetli bir kahve molası'
+        videoUrl: 'https://videos.pexels.com/video-files/4783389/4783389-hd.mp4',
+        author: '@gamer_bro',
+        description: 'Oyun oynarken ben'
     },
      {
         id: 'pexels-5',
-        videoUrl: 'https://videos.pexels.com/video-files/3209535/3209535-hd.mp4',
-        author: '@lisa',
-        description: 'Yemyeşil ormanda bir yürüyüş'
+        videoUrl: 'https://videos.pexels.com/video-files/6980362/6980362-hd.mp4',
+        author: '@sevimli_dostlar',
+        description: 'Bu kedi tam bir komedyen!'
     }
 ];
