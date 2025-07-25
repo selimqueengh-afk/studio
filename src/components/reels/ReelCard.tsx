@@ -39,7 +39,6 @@ export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
                 key={reel.videoUrl}
                 src={reel.videoUrl}
                 loop
-                muted
                 playsInline
                 className="w-full h-full object-cover"
                 onClick={handleVideoClick} // Allow pausing by clicking anywhere on the video
