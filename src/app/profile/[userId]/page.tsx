@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, onSnapshot, DocumentSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -86,11 +86,7 @@ export default function ProfilePage() {
   
   useEffect(() => {
     if (currentUser && userId) {
-        // We still need a listener on the requests and friendship status to update the UI in realtime
-        // if the other user accepts/rejects or removes friend.
-        // We combine getDoc for initial load
-        // and onSnapshot for realtime updates.
-        checkFriendshipStatus(); // Initial check
+        checkFriendshipStatus(); 
 
         const unsubscribes = [
             onSnapshot(doc(db, `friendRequests/${currentUser.uid}_${userId}`), checkFriendshipStatus),
@@ -193,8 +189,6 @@ export default function ProfilePage() {
   }
   
   if (currentUser?.uid === userId) {
-    // Navigate to a dedicated "My Profile" page or show a specific message/UI
-    // For now, we'll just show a message.
     return <div className="text-center p-8">Burası sizin profil sayfanız.</div>
   }
 

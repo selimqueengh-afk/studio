@@ -16,6 +16,7 @@ import { Bell, UserCheck, UserX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { acceptFriendRequest, rejectFriendRequest } from '@/lib/friends';
 import { useToast } from '@/hooks/use-toast';
+import { getInitials } from '@/lib/utils';
 
 interface FriendRequest {
     id: string;
@@ -35,16 +36,20 @@ export default function FriendRequestBell() {
 
         const requestsQuery = query(
             collection(db, 'friendRequests'),
-            where('to', '==', user.uid)
+            where('to', '==', user.uid),
+            where('status', '==', 'pending')
         );
         
         const unsubscribe = onSnapshot(requestsQuery, async (snapshot) => {
             const requestsPromises = snapshot.docs.map(async (requestDoc) => {
                 const requestData = requestDoc.data();
                 if (!requestData.from) {
-                    return null; // Skip if from is missing
+                    return null;
                 }
                 const userDocSnap = await getDoc(doc(db, 'users', requestData.from));
+                if (!userDocSnap.exists()) {
+                    return null;
+                }
                 const userData = userDocSnap.data();
                 return {
                     id: requestDoc.id,
@@ -87,11 +92,6 @@ export default function FriendRequestBell() {
         setIsUpdating(null);
     };
 
-    const getInitials = (name: string | null | undefined) => {
-        if (!name) return '??';
-        return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
-    };
-
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -120,7 +120,7 @@ export default function FriendRequestBell() {
                                         <AvatarImage src={req.fromPhotoURL} />
                                         <AvatarFallback>{getInitials(req.fromName)}</AvatarFallback>
                                     </Avatar>
-                                    <span className="text-sm font-medium">{req.fromName || 'Bilinmeyen Kullanıcı'}</span>
+                                    <span className="text-sm font-medium truncate">{req.fromName || 'Bilinmeyen Kullanıcı'}</span>
                                 </div>
                                 <div className="flex gap-1">
                                     <Button size="icon" variant="ghost" className="h-7 w-7 text-green-500" onClick={() => handleAccept(req.from)} disabled={!!isUpdating}>
