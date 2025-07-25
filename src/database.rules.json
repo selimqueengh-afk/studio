@@ -9,13 +9,17 @@
     "match": "/users/{userId}",
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
     "match": "/users/{userId}/friends/{friendId}",
-    "allow": "read, list: if isUser(userId); write: if isSignedIn() && (isUser(userId) || request.auth.uid == friendId); delete: if isSignedIn() && (isUser(userId) || isUser(friendId));",
+    "allow": "read, list: if isUser(userId);",
+    "allow": "write: if isUser(userId) || request.auth.uid == friendId;",
+    "allow": "delete: if isUser(userId) || request.auth.uid == friendId;",
     "match": "/friendRequests/{requestId}",
-    "allow": "read, list: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to || request.query.where.to == request.auth.uid); create: if isSignedIn() && request.auth.uid == request.resource.data.from && request.resource.data.status == 'pending' && request.resource.data.keys().hasAll(['from', 'to', 'status', 'createdAt']); delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);",
+    "allow": "read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);",
+    "allow": "list: if isSignedIn() && request.query.where.to == request.auth.uid;",
+    "allow": "create: if isSignedIn() && request.auth.uid == request.resource.data.from && request.resource.data.status == 'pending' && request.resource.data.keys().hasAll(['from', 'to', 'status', 'createdAt']);",
+    "allow": "delete: if isSignedIn() && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);",
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
     "match": "/messages/{messageId}",
     "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(request.resource.data.roomId || roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
   }
 }
-
