@@ -3,57 +3,18 @@
   "rules": {
     "rules_version": "2",
     "service": "cloud.firestore",
-    "match": {
-      "databases": {
-        "{database}": {
-          "documents": {
-            "function": [
-              "isSignedIn() {",
-              "      return request.auth != null;",
-              "    }",
-              "isUser(userId) {",
-              "      return isSignedIn() && request.auth.uid == userId;",
-              "    }"
-            ],
-            "users": {
-              "{userId}": {
-                ".read": "isSignedIn()",
-                ".list": "isSignedIn()",
-                ".update": "isUser(userId)",
-                "friends": {
-                  "{friendId}": {
-                    ".read": "isUser(userId)",
-                    ".list": "isUser(userId)",
-                    ".create": "isUser(userId)",
-                    ".delete": "isUser(userId)"
-                  }
-                }
-              }
-            },
-            "friendRequests": {
-              "{requestId}": {
-                ".read": "isSignedIn()",
-                ".create": "isSignedIn() && request.resource.data.from.uid == request.auth.uid",
-                ".delete": "isSignedIn()"
-              }
-            },
-            "rooms": {
-              "{roomId}": {
-                ".read": "isSignedIn() && resource.data.participants[request.auth.uid] == true",
-                ".write": "isSignedIn() && resource.data.participants[request.auth.uid] == true",
-                "messages": {
-                  "{messageId}": {
-                    ".read": "isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true",
-                    ".create": "isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true",
-                    ".update": "false",
-                    ".delete": "false"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    "match": "/databases/{database}/documents",
+    "function isSignedIn()": "return request.auth != null;",
+    "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
+    "match": "/users/{userId}",
+    "allow": "read, list: if isSignedIn(); update: if isUser(userId);",
+    "match": "/users/{userId}/friends/{friendId}",
+    "allow": "read, list, create, delete: if isUser(userId);",
+    "match": "/friendRequests/{requestId}",
+    "allow": "read: if isSignedIn(); create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid; delete: if isSignedIn();",
+    "match": "/rooms/{roomId}",
+    "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
+    "match": "/rooms/{roomId}/messages/{messageId}",
+    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
   }
 }
