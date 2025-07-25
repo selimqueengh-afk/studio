@@ -35,8 +35,8 @@ export default function RoomList() {
 
   useEffect(() => {
     if (!user) {
-      setFriends([]);
       setLoadingFriends(false);
+      setFriends([]);
       return;
     }
 
@@ -55,7 +55,7 @@ export default function RoomList() {
         toast({
           variant: 'destructive',
           title: 'Hata',
-          description: 'Arkadaşlar yüklenemedi.',
+          description: 'Arkadaşlar yüklenemedi. Lütfen izinlerinizi kontrol edin.',
         });
         setLoadingFriends(false);
     });
