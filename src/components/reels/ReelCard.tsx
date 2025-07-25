@@ -1,7 +1,8 @@
 
 "use client";
 
-import { PlayCircle } from "lucide-react";
+import { useState, useRef } from 'react';
+import { PlayCircle, PauseCircle } from "lucide-react";
 import type { StaticReel } from "@/lib/reels";
 import { cn } from "@/lib/utils";
 
@@ -12,31 +13,51 @@ interface ReelCardProps {
 }
 
 export default function ReelCard({ reel, isShared = false }: ReelCardProps) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+
     if (!reel) {
         return null;
     }
 
+    const handleVideoClick = () => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            } else {
+                videoRef.current.play();
+                setIsPlaying(true);
+            }
+        }
+    };
+
     const cardContent = (
          <div className={cn("relative w-full h-full", isShared ? 'aspect-video' : 'h-full')}>
-            {reel.videoUrl ? (
-                <video 
-                    key={reel.videoUrl}
-                    src={reel.videoUrl}
-                    loop
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
+            <video 
+                ref={videoRef}
+                key={reel.videoUrl}
+                src={reel.videoUrl}
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+                onClick={handleVideoClick} // Allow pausing by clicking anywhere on the video
+            >
+                Tarayıcınız video etiketini desteklemiyor.
+            </video>
+            
+            {!isPlaying && (
+                <div 
+                    className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
+                    onClick={handleVideoClick}
                 >
-                    Tarayıcınız video etiketini desteklemiyor.
-                </video>
-            ) : (
-                <div className="w-full h-full bg-secondary flex items-center justify-center">
-                    <PlayCircle className="w-12 h-12 text-muted-foreground" />
+                    <PlayCircle className="w-20 h-20 text-white/70 drop-shadow-lg" />
                 </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
-            <div className="absolute bottom-4 left-4 text-white max-w-[calc(100%-4rem)] p-4">
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+            <div className="absolute bottom-4 left-4 text-white max-w-[calc(100%-4rem)] p-4 pointer-events-none">
                 <p className="font-bold text-lg truncate drop-shadow-lg">{reel.author}</p>
                 <p className="text-sm truncate drop-shadow-md">{reel.description}</p>
             </div>
