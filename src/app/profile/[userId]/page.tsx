@@ -41,38 +41,41 @@ export default function ProfilePage() {
   const checkFriendshipStatus = useCallback(() => {
     if (!currentUser || !userId) return () => {};
 
-    // Check if they are friends by looking in the subcollection
+    const unsubscribers: (() => void)[] = [];
+
+    // Check if they are friends
     const friendRef = doc(db, `users/${currentUser.uid}/friends/${userId}`);
     const unsubscribeFriend = onSnapshot(friendRef, (snapshot) => {
-        if (snapshot.exists()) {
-            setFriendshipStatus('friends');
-            return;
-        }
-
+      if (snapshot.exists()) {
+        setFriendshipStatus('friends');
+      } else {
         // If not friends, check for pending requests
         const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
         const unsubscribeSent = onSnapshot(sentRequestRef, (sentSnap) => {
-            if (sentSnap.exists()) {
-                setFriendshipStatus('pending');
-                return;
-            }
-
+          if (sentSnap.exists()) {
+            setFriendshipStatus('pending');
+          } else {
             const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
             const unsubscribeReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
-                if (receivedSnap.exists()) {
-                    setFriendshipStatus('received_request');
-                } else {
-                    setFriendshipStatus('none');
-                }
+              if (receivedSnap.exists()) {
+                setFriendshipStatus('received_request');
+              } else {
+                setFriendshipStatus('none');
+              }
             });
-            return () => unsubscribeReceived();
+            unsubscribers.push(unsubscribeReceived);
+          }
         });
-        return () => unsubscribeSent();
+        unsubscribers.push(unsubscribeSent);
+      }
     });
-    
-    return () => unsubscribeFriend();
+    unsubscribers.push(unsubscribeFriend);
 
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
   }, [currentUser, userId]);
+
 
   useEffect(() => {
     if (!userId) return;
@@ -109,7 +112,7 @@ export default function ProfilePage() {
     setIsUpdating(true);
     try {
       await sendFriendRequest(currentUser.uid, profile.uid);
-      setFriendshipStatus('pending');
+      // The onSnapshot listener will automatically update the friendshipStatus
       toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
     } catch (error) {
       console.error(error);
@@ -123,7 +126,7 @@ export default function ProfilePage() {
      setIsUpdating(true);
     try {
       await acceptFriendRequest(profile.uid, currentUser.uid);
-      setFriendshipStatus('friends');
+       // The onSnapshot listener will automatically update the friendshipStatus
        toast({ title: 'Başarılı', description: 'Arkadaşlık isteği kabul edildi.' });
     } catch (error) {
       console.error(error);
@@ -137,7 +140,7 @@ export default function ProfilePage() {
      setIsUpdating(true);
     try {
       await rejectFriendRequest(profile.uid, currentUser.uid);
-      setFriendshipStatus('none');
+      // The onSnapshot listener will automatically update the friendshipStatus
        toast({ title: 'Başarılı', description: 'Arkadaşlık isteği reddedildi.' });
     } catch (error) {
       console.error(error);
@@ -151,7 +154,7 @@ export default function ProfilePage() {
      setIsUpdating(true);
     try {
       await removeFriend(currentUser.uid, profile.uid);
-      setFriendshipStatus('none');
+      // The onSnapshot listener will automatically update the friendshipStatus
       toast({ title: 'Başarılı', description: 'Arkadaşlıktan çıkarıldı.' });
     } catch (error)
     {

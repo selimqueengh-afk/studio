@@ -43,11 +43,11 @@ export const sendFriendRequest = async (fromUid: string, toUid: string) => {
     throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
 
-  // The createdAt field was causing a permission denied error because the security rules
-  // did not account for it. It's not essential for the request logic, so it's removed.
   await setDoc(requestRef, {
     from: fromUid,
     to: toUid,
+    status: 'pending',
+    createdAt: serverTimestamp(),
   });
 };
 
