@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,6 +36,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!userId) return;
+
     setLoading(true);
     const docRef = doc(db, 'users', userId);
     const unsubscribeUser = onSnapshot(docRef, (docSnap) => {
@@ -46,13 +47,16 @@ export default function ProfilePage() {
         setProfile(null);
       }
       setLoading(false);
+    }, () => {
+        setLoading(false);
+        setProfile(null);
     });
     
     return () => unsubscribeUser();
   }, [userId]);
   
   useEffect(() => {
-    if (!currentUser || !userId) return;
+    if (!currentUser || !userId || currentUser.uid === userId) return;
 
     // Listen for changes in friendship status (are we friends?)
     const friendRef = doc(db, `users/${currentUser.uid}/friends/${userId}`);
@@ -88,6 +92,14 @@ export default function ProfilePage() {
       unsubFriend();
     };
   }, [currentUser, userId]);
+
+  useEffect(() => {
+    // Redirect to chat if it's the current user's own profile.
+    // This must be in a useEffect to avoid "cannot update component while rendering" error.
+    if (currentUser?.uid === userId) {
+        router.push('/chat');
+    }
+  }, [currentUser, userId, router]);
 
 
   const handleSendRequest = async () => {
@@ -166,17 +178,12 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (loading || currentUser?.uid === userId) {
     return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   if (!profile) {
-    return <div className="text-center">Kullanıcı bulunamadı.</div>;
-  }
-  
-  if (currentUser?.uid === userId) {
-    router.push('/chat'); // Redirect to chat if it's the current user's own profile
-    return null;
+    return <div className="text-center p-4">Kullanıcı bulunamadı veya bu profile erişim izniniz yok.</div>;
   }
 
   return (
