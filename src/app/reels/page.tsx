@@ -128,7 +128,7 @@ export default function ReelsPage() {
     
     return reels.map((reel, index) => {
       const isPlaying = intersectingReelId === reel.id;
-      const embedUrl = isPlaying ? `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&showinfo=0&loop=1&playlist=${reel.id}&playsinline=1&enablejsapi=1` : '';
+      const embedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&showinfo=0&loop=1&playlist=${reel.id}&playsinline=1&enablejsapi=1`;
       
       return (
         <div 
@@ -152,17 +152,16 @@ export default function ReelsPage() {
               data-ai-hint="youtube short"
               loading="lazy"
             />
-            <iframe
-                src={embedUrl}
-                title={reel.description}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className={cn(
-                  "absolute top-0 left-0 w-full h-full transition-opacity duration-300",
-                  isPlaying ? 'opacity-100' : 'opacity-0'
-                )}
-            ></iframe>
+            {isPlaying && (
+              <iframe
+                  src={embedUrl}
+                  title={reel.description}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute top-0 left-0 w-full h-full"
+              ></iframe>
+            )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
           
