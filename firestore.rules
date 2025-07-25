@@ -3,37 +3,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isUser(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    match /users/{userId} {
-      allow read, list: if isSignedIn();
-      allow update: if isUser(userId);
-
-      match /friends/{friendId} {
-        allow read, list, create, delete: if isUser(userId);
-      }
-    }
-
-    match /friendRequests/{requestId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;
-      allow delete: if isSignedIn();
-    }
-
-    match /rooms/{roomId} {
-      allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
-
-      match /messages/{messageId} {
-        allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        allow update, delete: if false;
-      }
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
