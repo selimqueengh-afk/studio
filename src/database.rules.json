@@ -6,12 +6,19 @@
     "match": "/databases/{database}/documents",
     "function isSignedIn()": "return request.auth != null;",
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
-    "match": "/users/{userId}/{document=**}",
+    
+    "match": "/users/{userId}",
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
+
+    "match": "/users",
+    "allow": "list: if isSignedIn();",
+
     "match": "/friendRequests/{requestId}",
-    "allow": "read, update, delete: if isSignedIn() && (request.resource.data.from.uid == request.auth.uid || request.resource.data.to.uid == request.auth.uid); create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;",
+    "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid; read, update, delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
+    
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
+    
     "match": "/rooms/{roomId}/messages/{messageId}",
     "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
   }
