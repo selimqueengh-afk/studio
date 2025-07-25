@@ -121,5 +121,11 @@ export const removeFriend = async (currentUserUid:string, friendUid:string) => {
     batch.delete(userFriendRef);
     batch.delete(friendUserRef);
     
+    // Also remove any pending friend requests between them, just in case.
+    const requestRef1 = doc(db, 'friendRequests', `${currentUserUid}_${friendUid}`);
+    const requestRef2 = doc(db, 'friendRequests', `${friendUid}_${currentUserUid}`);
+    batch.delete(requestRef1);
+    batch.delete(requestRef2);
+    
     await batch.commit();
 };
