@@ -17,14 +17,16 @@ import { getInitials } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { acceptFriendRequest, rejectFriendRequest } from '@/lib/friends';
 
+interface UserInfo {
+    uid: string;
+    displayName: string;
+    photoURL: string | null;
+}
+
 interface FriendRequest {
   id: string;
-  from: string;
-  fromName: string;
-  fromPhoto: string | null;
-  to: string;
-  toName: string;
-  toPhoto: string | null;
+  from: UserInfo;
+  to: UserInfo;
 }
 
 export default function FriendRequestBell() {
@@ -42,7 +44,7 @@ export default function FriendRequestBell() {
     }
 
     setLoading(true);
-    const q = query(collection(db, 'friendRequests'), where('to', '==', user.uid));
+    const q = query(collection(db, 'friendRequests'), where('to.uid', '==', user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FriendRequest));
       setRequests(reqs);
@@ -60,18 +62,19 @@ export default function FriendRequestBell() {
     if (!user) return;
     setActionLoading(request.id);
     
-    const fromUser = { 
-        uid: request.from, 
-        displayName: request.fromName,
-        photoURL: request.fromPhoto
-    };
-    const toUser = { 
-        uid: user.uid, 
-        displayName: user.displayName,
-        photoURL: user.photoURL
-    };
-
     try {
+      // Ensure the user objects are correctly formed
+      const fromUser = { 
+        uid: request.from.uid, 
+        displayName: request.from.displayName || 'Bilinmeyen Kullanıcı',
+        photoURL: request.from.photoURL || null
+      };
+      const toUser = { 
+        uid: user.uid, 
+        displayName: user.displayName || 'Bilinmeyen Kullanıcı',
+        photoURL: user.photoURL || null
+      };
+
       await acceptFriendRequest(request.id, fromUser, toUser);
       toast({ title: 'Başarılı', description: `${fromUser.displayName} artık arkadaşın.` });
     } catch (error: any) {
@@ -123,10 +126,10 @@ export default function FriendRequestBell() {
               <div key={req.id} className="flex flex-col p-2 rounded-lg hover:bg-secondary">
                  <div className="flex items-center gap-3">
                     <Avatar>
-                        <AvatarImage src={req.fromPhoto || undefined} alt={req.fromName} />
-                        <AvatarFallback>{getInitials(req.fromName)}</AvatarFallback>
+                        <AvatarImage src={req.from.photoURL || undefined} alt={req.from.displayName} />
+                        <AvatarFallback>{getInitials(req.from.displayName)}</AvatarFallback>
                     </Avatar>
-                    <p className="flex-1 font-semibold truncate">{req.fromName}</p>
+                    <p className="flex-1 font-semibold truncate">{req.from.displayName}</p>
                  </div>
                  <div className="flex gap-2 mt-2 self-end">
                     <Button 

@@ -12,14 +12,13 @@
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
 
     "match": "/users/{userId}/friends/{friendId}",
-    "allow": "read, list: if isUser(userId);",
-    "allow": "write: if isUser(userId) || isUser(friendId);",
-    "allow": "delete: if isUser(userId) || isUser(friendId);",
+    "allow": "read, list: if isSignedIn() && isUser(userId);",
+    "allow": "write, delete: if isUser(userId);",
 
     "match": "/friendRequests/{requestId}",
-    "allow": "read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);",
-    "allow": "create: if isSignedIn() && request.resource.data.from == request.auth.uid;",
-    "allow": "delete: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);",
+    "allow": "read: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
+    "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;",
+    "allow": "delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
 
     "match": "/rooms/{roomId}",
     "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
