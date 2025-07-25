@@ -7,23 +7,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Plus, Hash, Loader2, User as UserIcon, MessageSquare, Users, Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
-import { Separator } from '../ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { ScrollArea } from '../ui/scroll-area';
 import { getInitials } from '@/lib/utils';
 import { createOrGetRoom } from '@/lib/rooms';
 
@@ -45,7 +34,10 @@ export default function RoomList() {
 
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+        setLoadingFriends(false);
+        return;
+    }
     setLoadingFriends(true);
     
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
