@@ -3,10 +3,6 @@
 
 import { db } from '@/lib/firebase';
 import {
-  collection,
-  query,
-  where,
-  getDocs,
   doc,
   setDoc,
   deleteDoc,
@@ -24,11 +20,26 @@ interface UserInfo {
 
 export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) => {
   const requestId = `${fromUser.uid}_${toUser.uid}`;
+  const reverseRequestId = `${toUser.uid}_${fromUser.uid}`;
+  
   const requestDocRef = doc(db, 'friendRequests', requestId);
-  const docSnap = await getDoc(requestDocRef);
+  const reverseRequestDocRef = doc(db, 'friendRequests', reverseRequestId);
+  const friendDocRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
 
-  if (docSnap.exists()) {
-    throw new Error('Friend request already sent.');
+  const [requestSnap, reverseRequestSnap, friendSnap] = await Promise.all([
+    getDoc(requestDocRef),
+    getDoc(reverseRequestDocRef),
+    getDoc(friendDocRef)
+  ]);
+
+  if (friendSnap.exists()) {
+    throw new Error('Bu kullanıcı zaten arkadaşınız.');
+  }
+  if (requestSnap.exists()) {
+    throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
+  }
+  if (reverseRequestSnap.exists()) {
+    throw new Error('Bu kullanıcıdan zaten bir arkadaşlık isteğiniz var.');
   }
 
   await setDoc(requestDocRef, {
@@ -38,7 +49,6 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
     to: toUser.uid,
     toName: toUser.displayName,
     toPhoto: toUser.photoURL || null,
-    status: 'pending',
     createdAt: serverTimestamp(),
   });
 };
@@ -46,24 +56,20 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
 export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
   const batch = writeBatch(db);
 
-  // Add to each other's friends list
-  const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
-  batch.set(fromFriendRef, {
-    uid: toUser.uid,
-    displayName: toUser.displayName,
-    email: toUser.email,
-    photoURL: toUser.photoURL || null
-  });
-
   const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
   batch.set(toFriendRef, {
     uid: fromUser.uid,
     displayName: fromUser.displayName,
-    email: fromUser.email,
-    photoURL: fromUser.photoURL || null
+    photoURL: fromUser.photoURL || null,
   });
 
-  // Delete the friend request
+  const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
+  batch.set(fromFriendRef, {
+    uid: toUser.uid,
+    displayName: toUser.displayName,
+    photoURL: toUser.photoURL || null,
+  });
+
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
 
