@@ -60,21 +60,25 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
 export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
   const batch = writeBatch(db);
 
-  // Add friend to current user's friend list
-  const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
-  batch.set(toFriendRef, {
+  const safeFromUser = {
     uid: fromUser.uid,
     displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
     photoURL: fromUser.photoURL || null,
-  });
+  };
 
-  // Add current user to friend's friend list
-  const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
-  batch.set(fromFriendRef, {
+  const safeToUser = {
     uid: toUser.uid,
     displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
     photoURL: toUser.photoURL || null,
-  });
+  };
+
+  // Add friend to current user's friend list
+  const toFriendRef = doc(db, `users/${safeToUser.uid}/friends/${safeFromUser.uid}`);
+  batch.set(toFriendRef, safeFromUser);
+
+  // Add current user to friend's friend list
+  const fromFriendRef = doc(db, `users/${safeFromUser.uid}/friends/${safeToUser.uid}`);
+  batch.set(fromFriendRef, safeToUser);
 
   // Delete the friend request
   const requestDocRef = doc(db, 'friendRequests', requestId);

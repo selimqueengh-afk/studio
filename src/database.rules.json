@@ -12,11 +12,11 @@
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
 
     "match": "/users/{userId}/friends/{friendId}",
-    "allow": "read, list: if isSignedIn() && isUser(userId);",
+    "allow": "read: if isSignedIn() && isUser(userId);",
     "allow": "write, delete: if isUser(userId);",
 
     "match": "/friendRequests/{requestId}",
-    "allow": "read: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
+    "allow": "read, list: if isSignedIn() && (resource == null || resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
     "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;",
     "allow": "delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
 
