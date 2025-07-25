@@ -14,16 +14,16 @@ export interface Reel {
 }
 
 const mapApiResponse = (apiData: any): Reel[] => {
-    if (!apiData || !apiData.aweme_list || !Array.isArray(apiData.aweme_list)) {
+    if (!apiData || !apiData.data || !apiData.data.itemList || !Array.isArray(apiData.data.itemList)) {
         return [];
     }
-    return apiData.aweme_list.map((item: any) => ({
-        id: item.aweme_id,
+    return apiData.data.itemList.map((item: any) => ({
+        id: item.id,
         description: item.desc,
-        videoUrl: item.video.play_addr.url_list[0],
+        videoUrl: item.video.playAddr, // Using playAddr which is more reliable
         author: {
-            nickname: item.author.nickname,
-            avatar: item.author.avatar_thumb.url_list[0],
+            nickname: item.author.uniqueId,
+            avatar: item.author.avatarThumb,
         },
     }));
 };
@@ -36,7 +36,12 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         throw new Error('RapidAPI anahtarı veya host bilgisi eksik. Lütfen .env.local dosyasını kontrol edin.');
     }
     
-    const url = 'https://tiktok-api23.p.rapidapi.com/aweme/v1/feed/';
+    // Using the user posts endpoint as suggested by the user
+    const url = new URL('https://tiktok-api23.p.rapidapi.com/api/user/posts');
+    url.searchParams.append('secUid', 'MS4wLjABAAAAqB08cUbXaDWqbD6MCga2RbGTuhfO2EsHayBYx08NDrN7IE3jQuRDNNN6YwyfH6_6');
+    url.searchParams.append('count', '12');
+    url.searchParams.append('cursor', '0');
+
     const options = {
         method: 'GET',
         headers: {
@@ -46,7 +51,7 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
     };
 
     try {
-        const response = await fetch(url, options);
+        const response = await fetch(url.toString(), options);
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
