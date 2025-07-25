@@ -3,11 +3,12 @@
     "rules_version": "2",
     "service": "cloud.firestore",
     "match": "/databases/{database}/documents",
+
     "function isSignedIn()": "return request.auth != null;",
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
 
     "match": "/users/{userId}",
-    "allow read, list": "if isSignedIn();",
+    "allow list, read": "if isSignedIn();",
     "allow update": "if isUser(userId);",
 
     "match": "/users/{userId}/friends/{friendId}",
