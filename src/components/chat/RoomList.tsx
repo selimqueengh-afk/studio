@@ -106,7 +106,7 @@ export default function RoomList() {
                         <AvatarImage src={friend.photoURL || ''} alt={friend.displayName} />
                         <AvatarFallback>{getInitials(friend.displayName)}</AvatarFallback>
                     </Avatar>
-                    {friend.displayName}
+                    <span className="truncate">{friend.displayName}</span>
                 </button>
               )
             })
