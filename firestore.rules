@@ -1,8 +1,10 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -11,26 +13,32 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Rules for the 'users' collection
     match /users/{userId} {
       allow read, list: if isSignedIn();
       allow update: if isUser(userId);
 
+      // Rules for the 'friends' subcollection
       match /friends/{friendId} {
         allow read, list: if isUser(userId);
       }
     }
-    
+
+    // Rules for the 'friendRequests' collection
     match /friendRequests/{requestId} {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
-      allow read, update, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
+      allow read, update, delete: if isSignedIn() && 
+                                   (request.auth.uid == resource.data.from.uid || 
+                                    request.auth.uid == resource.data.to.uid);
     }
     
+    // Rules for 'rooms' and 'messages'
     match /rooms/{roomId} {
       allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
 
       match /messages/{messageId} {
         allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        allow update, delete: if false;
+        allow update, delete: if false; // Messages cannot be edited or deleted
       }
     }
   }
