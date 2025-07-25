@@ -67,7 +67,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           uid: userCredential.user.uid,
           displayName: username,
           email: email,
-          photoURL: userCredential.user.photoURL
+          photoURL: userCredential.user.photoURL || null
         });
         toast({ title: 'Başarılı', description: 'Hesabınız başarıyla oluşturuldu.' });
       } else {
