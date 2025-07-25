@@ -18,7 +18,7 @@ export default function ReelsPage() {
   const [hasMore, setHasMore] = useState(true);
   const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
   const [isShareSheetOpen, setShareSheetOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [intersectingReelId, setIntersectingReelId] = useState<string | null>(null);
 
   const router = useRouter();

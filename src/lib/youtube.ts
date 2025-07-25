@@ -28,7 +28,7 @@ export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Ree
     
     const response = await youtube.search.list({
       part: ['snippet'],
-      q: '"roblox sigma" | "roblox funny" | "roblox egor" | "gigachat" #shorts',
+      q: '"roblox egor" | "gigachad" | "roblox manface" #shorts -girl',
       type: ['video'],
       maxResults: 10,
       videoDuration: 'short',
