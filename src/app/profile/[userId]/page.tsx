@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -68,6 +68,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!currentUser || !profile) return;
 
+    const unsubscribers: (() => void)[] = [];
+
     // 1. Check if they are already friends
     const friendRef = doc(db, `users/${currentUser.uid}/friends/${profile.uid}`);
     const unsubscribeFriend = onSnapshot(friendRef, (docSnap) => {
@@ -75,8 +77,9 @@ export default function ProfilePage() {
         setFriendshipStatus('friends');
         return;
       }
-
-      // 2. If not friends, check for a sent request
+      // If not friends, continue to check requests
+      
+      // 2. Check for a sent request
       const sentRequestRef = doc(db, 'friendRequests', `${currentUser.uid}_${profile.uid}`);
       const unsubscribeSent = onSnapshot(sentRequestRef, (sentSnap) => {
         if (sentSnap.exists()) {
@@ -84,7 +87,7 @@ export default function ProfilePage() {
           return;
         }
 
-        // 3. If no sent request, check for a received request
+        // 3. Check for a received request
         const receivedRequestRef = doc(db, 'friendRequests', `${profile.uid}_${currentUser.uid}`);
         const unsubscribeReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
           if (receivedSnap.exists()) {
@@ -96,12 +99,13 @@ export default function ProfilePage() {
           // 4. If none of the above, they are not friends
           setFriendshipStatus('not_friends');
         });
-        return () => unsubscribeReceived();
+        unsubscribers.push(unsubscribeReceived);
       });
-      return () => unsubscribeSent();
+      unsubscribers.push(unsubscribeSent);
     });
+    unsubscribers.push(unsubscribeFriend);
 
-    return () => unsubscribeFriend();
+    return () => unsubscribers.forEach(unsub => unsub());
   }, [currentUser, profile]);
 
 
@@ -159,7 +163,11 @@ export default function ProfilePage() {
 
 
   if (loadingProfile || authLoading || !friendshipStatus || currentUser?.uid === userId) {
-    return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (!profile) {
@@ -167,28 +175,41 @@ export default function ProfilePage() {
   }
   
   const renderFriendshipButton = () => {
+    const buttonProps = {
+        disabled: actionLoading,
+        className: "flex items-center gap-2"
+    };
+
     switch (friendshipStatus) {
       case 'friends':
-        return <Button variant="destructive" onClick={handleRemoveFriend} disabled={actionLoading}>
-            {actionLoading ? <Loader2 className="animate-spin" /> : <UserMinus />} Arkadaşlıktan Çıkar
-        </Button>;
+        return (
+            <Button variant="destructive" onClick={handleRemoveFriend} {...buttonProps}>
+                {actionLoading ? <Loader2 className="animate-spin" /> : <UserMinus />} 
+                <span>Arkadaştan Çıkar</span>
+            </Button>
+        );
       case 'request_sent':
         return <Button variant="secondary" disabled>İstek Gönderildi</Button>;
       case 'request_received':
         return (
           <div className="flex gap-2">
-            <Button onClick={handleAcceptRequest} disabled={actionLoading}>
-              {actionLoading ? <Loader2 className="animate-spin" /> : <UserCheck />} Kabul Et
+            <Button onClick={handleAcceptRequest} {...buttonProps}>
+              {actionLoading ? <Loader2 className="animate-spin" /> : <UserCheck />} 
+              <span>Kabul Et</span>
             </Button>
-            <Button variant="outline" onClick={handleRejectRequest} disabled={actionLoading}>
-              {actionLoading ? <Loader2 className="animate-spin" /> : <UserX />} Reddet
+            <Button variant="outline" onClick={handleRejectRequest} {...buttonProps}>
+              {actionLoading ? <Loader2 className="animate-spin" /> : <UserX />} 
+              <span>Reddet</span>
             </Button>
           </div>
         );
       case 'not_friends':
-        return <Button onClick={handleSendRequest} disabled={actionLoading}>
-            {actionLoading ? <Loader2 className="animate-spin" /> : <UserPlus />} Arkadaş Ekle
-        </Button>;
+        return (
+            <Button onClick={handleSendRequest} {...buttonProps}>
+                {actionLoading ? <Loader2 className="animate-spin" /> : <UserPlus />} 
+                <span>Arkadaş Ekle</span>
+            </Button>
+        );
       default:
         return null;
     }
@@ -208,7 +229,7 @@ export default function ProfilePage() {
             </Avatar>
             <h1 className="text-3xl font-bold text-foreground">{profile.displayName}</h1>
             <p className="text-muted-foreground mt-1">{profile.email}</p>
-            <div className="mt-6">
+            <div className="mt-6 h-10 flex items-center justify-center">
                 {renderFriendshipButton()}
             </div>
         </div>
