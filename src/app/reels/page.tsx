@@ -43,7 +43,7 @@ export default function ReelsPage() {
             >
             <CarouselContent className="-mt-0 h-full">
                 {reels.map((reel) => (
-                    <CarouselItem key={reel.id} className="pt-0 p-0 h-full relative">
+                    <CarouselItem key={reel.id} className="pt-0 p-0 h-full relative flex items-center justify-center">
                        <div className="absolute top-4 left-4 z-20">
                             <Button
                                 variant="ghost"
