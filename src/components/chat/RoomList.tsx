@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { createOrGetRoom } from '@/lib/rooms';
+import { usePathname } from 'next/navigation';
 
 interface Friend {
     uid: string;
@@ -24,7 +24,7 @@ interface Friend {
 }
 
 export default function RoomList() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
@@ -34,19 +34,16 @@ export default function RoomList() {
 
 
   useEffect(() => {
-    // Start loading whenever auth state changes
-    setLoadingFriends(true);
-
-    // If auth is still loading, or there's no user, wait.
-    if (authLoading || !user) {
-      // If auth is done and there's still no user, stop loading.
-      if (!authLoading) {
-        setLoadingFriends(false);
-      }
+    // If there is no user, we are not logged in.
+    // Clear friends and stop loading.
+    if (!user) {
+      setFriends([]);
+      setLoadingFriends(false);
       return;
     }
-    
-    // Once we have a user, start fetching friends.
+
+    // When there IS a user, start fetching friends.
+    setLoadingFriends(true);
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
 
     const unsubscribe = onSnapshot(friendsQuery, (snapshot) => {
@@ -66,8 +63,9 @@ export default function RoomList() {
         setLoadingFriends(false); // Stop loading on error too.
     });
 
+    // Cleanup the listener when the component unmounts or user changes.
     return () => unsubscribe();
-  }, [user, authLoading, toast]);
+  }, [user, toast]);
 
 
   const handleSelectFriendForDM = async (selectedFriend: Friend) => {
