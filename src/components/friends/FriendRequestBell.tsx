@@ -44,10 +44,6 @@ export default function FriendRequestBell() {
         );
         
         const unsubscribe = onSnapshot(requestsQuery, async (snapshot) => {
-            if (snapshot.empty) {
-                setRequests([]);
-                return;
-            }
             const requestsPromises = snapshot.docs.map(async (requestDoc) => {
                 const requestData = requestDoc.data();
                 if (!requestData.from) {
@@ -69,11 +65,11 @@ export default function FriendRequestBell() {
             setRequests(newRequests);
         }, (error) => {
             console.error("Error fetching friend requests: ", error);
-            // toast({
-            //     variant: "destructive",
-            //     title: "Hata",
-            //     description: "Arkadaşlık istekleri alınamadı."
-            // })
+            toast({
+                variant: "destructive",
+                title: "Hata",
+                description: "Arkadaşlık istekleri alınamadı."
+            })
         });
 
         return () => unsubscribe();

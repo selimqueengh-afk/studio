@@ -59,28 +59,29 @@ export default function ProfilePage() {
     const unsubFriend = onSnapshot(friendRef, (docSnap) => {
       if (docSnap.exists()) {
         setFriendshipStatus('friends');
-      } else {
-        // If not friends, check requests
-        // Listen for sent request
-        const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
-        const unsubSent = onSnapshot(sentRequestRef, (sentSnap) => {
-          if (sentSnap.exists()) {
-            setFriendshipStatus('pending');
-          } else {
-            // Listen for received request
-            const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
-            const unsubReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
-              if (receivedSnap.exists()) {
-                setFriendshipStatus('received_request');
-              } else {
-                setFriendshipStatus('none');
-              }
-            });
-            return () => unsubReceived();
-          }
-        });
-        return () => unsubSent();
+        return; // Early exit if they are friends
       }
+
+      // If not friends, check for a pending request *we* sent.
+      const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
+      const unsubSent = onSnapshot(sentRequestRef, (sentSnap) => {
+        if (sentSnap.exists()) {
+          setFriendshipStatus('pending');
+        } else {
+          // If no sent request, check for a pending request *we* received.
+          const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
+          const unsubReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
+            if (receivedSnap.exists()) {
+              setFriendshipStatus('received_request');
+            } else {
+              // If no friend record, no sent request, and no received request, they are not connected.
+              setFriendshipStatus('none');
+            }
+          });
+          return () => unsubReceived();
+        }
+      });
+      return () => unsubSent();
     });
 
     return () => {
