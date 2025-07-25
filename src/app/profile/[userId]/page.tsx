@@ -38,42 +38,35 @@ export default function ProfilePage() {
     return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
   };
 
-  const checkFriendshipStatus = useCallback(() => {
-    if (!currentUser || !userId) return () => {};
-
-    const unsubscribers: (() => void)[] = [];
+  const checkFriendshipStatus = useCallback(async () => {
+    if (!currentUser || !userId) return;
 
     // Check if they are friends
     const friendRef = doc(db, `users/${currentUser.uid}/friends/${userId}`);
-    const unsubscribeFriend = onSnapshot(friendRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setFriendshipStatus('friends');
-      } else {
-        // If not friends, check for pending requests
-        const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
-        const unsubscribeSent = onSnapshot(sentRequestRef, (sentSnap) => {
-          if (sentSnap.exists()) {
-            setFriendshipStatus('pending');
-          } else {
-            const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
-            const unsubscribeReceived = onSnapshot(receivedRequestRef, (receivedSnap) => {
-              if (receivedSnap.exists()) {
-                setFriendshipStatus('received_request');
-              } else {
-                setFriendshipStatus('none');
-              }
-            });
-            unsubscribers.push(unsubscribeReceived);
-          }
-        });
-        unsubscribers.push(unsubscribeSent);
-      }
-    });
-    unsubscribers.push(unsubscribeFriend);
+    const friendSnap = await getDoc(friendRef);
+    if (friendSnap.exists()) {
+      setFriendshipStatus('friends');
+      return;
+    }
 
-    return () => {
-      unsubscribers.forEach(unsub => unsub());
-    };
+    // Check for sent request
+    const sentRequestRef = doc(db, `friendRequests/${currentUser.uid}_${userId}`);
+    const sentSnap = await getDoc(sentRequestRef);
+    if (sentSnap.exists()) {
+      setFriendshipStatus('pending');
+      return;
+    }
+
+    // Check for received request
+    const receivedRequestRef = doc(db, `friendRequests/${userId}_${currentUser.uid}`);
+    const receivedSnap = await getDoc(receivedRequestRef);
+    if (receivedSnap.exists()) {
+      setFriendshipStatus('received_request');
+      return;
+    }
+
+    setFriendshipStatus('none');
+
   }, [currentUser, userId]);
 
 
@@ -96,14 +89,20 @@ export default function ProfilePage() {
   }, [userId]);
   
   useEffect(() => {
-    if (!currentUser || !userId) return;
+    if (currentUser && userId) {
+        // We still need a listener on the requests to update the UI in realtime
+        // if the other user accepts/rejects. So we combine getDoc for initial load
+        // and onSnapshot for realtime updates.
+        checkFriendshipStatus(); // Initial check
 
-    const unsubscribe = checkFriendshipStatus();
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
+        const unsubscribes = [
+            onSnapshot(doc(db, `friendRequests/${currentUser.uid}_${userId}`), checkFriendshipStatus),
+            onSnapshot(doc(db, `friendRequests/${userId}_${currentUser.uid}`), checkFriendshipStatus),
+            onSnapshot(doc(db, `users/${currentUser.uid}/friends/${userId}`), checkFriendshipStatus)
+        ];
+
+        return () => unsubscribes.forEach(unsub => unsub());
+    }
   }, [currentUser, userId, checkFriendshipStatus]);
 
 
@@ -112,7 +111,7 @@ export default function ProfilePage() {
     setIsUpdating(true);
     try {
       await sendFriendRequest(currentUser.uid, profile.uid);
-      // The onSnapshot listener will automatically update the friendshipStatus
+      setFriendshipStatus('pending');
       toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
     } catch (error) {
       console.error(error);
@@ -126,7 +125,7 @@ export default function ProfilePage() {
      setIsUpdating(true);
     try {
       await acceptFriendRequest(profile.uid, currentUser.uid);
-       // The onSnapshot listener will automatically update the friendshipStatus
+       setFriendshipStatus('friends');
        toast({ title: 'Başarılı', description: 'Arkadaşlık isteği kabul edildi.' });
     } catch (error) {
       console.error(error);
@@ -140,7 +139,7 @@ export default function ProfilePage() {
      setIsUpdating(true);
     try {
       await rejectFriendRequest(profile.uid, currentUser.uid);
-      // The onSnapshot listener will automatically update the friendshipStatus
+      setFriendshipStatus('none');
        toast({ title: 'Başarılı', description: 'Arkadaşlık isteği reddedildi.' });
     } catch (error) {
       console.error(error);
@@ -154,7 +153,7 @@ export default function ProfilePage() {
      setIsUpdating(true);
     try {
       await removeFriend(currentUser.uid, profile.uid);
-      // The onSnapshot listener will automatically update the friendshipStatus
+      setFriendshipStatus('none');
       toast({ title: 'Başarılı', description: 'Arkadaşlıktan çıkarıldı.' });
     } catch (error)
     {
