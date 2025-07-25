@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
-import type { Reel } from '@/lib/youtube';
 import Link from 'next/link';
 import { createOrGetRoom } from '@/lib/rooms';
 
@@ -32,8 +31,7 @@ interface MessageData {
   userId: string;
   userName: string;
   userPhotoURL: string | null;
-  type?: 'text' | 'reel';
-  reel?: Reel;
+  type?: 'text';
 }
 
 interface RoomData {
