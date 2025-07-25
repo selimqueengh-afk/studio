@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, onSnapshot, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, getDoc, doc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,28 @@ export default function FindFriendsPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const updateFriendshipStatus = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        setFriendshipStatuses(prev => ({ ...prev, [targetUserId]: 'loading' }));
+        
+        const friendDocRef = doc(db, `users/${currentUser.uid}/friends/${targetUserId}`);
+        const sentRequestDocRef = doc(db, `friendRequests/${currentUser.uid}_${targetUserId}`);
+
+        const [friendSnap, sentSnap] = await Promise.all([
+            getDoc(friendDocRef),
+            getDoc(sentRequestDocRef)
+        ]);
+
+        if (friendSnap.exists()) {
+            setFriendshipStatuses(prev => ({ ...prev, [targetUserId]: 'friends' }));
+        } else if (sentSnap.exists()) {
+            setFriendshipStatuses(prev => ({ ...prev, [targetUserId]: 'request_sent' }));
+        } else {
+            setFriendshipStatuses(prev => ({ ...prev, [targetUserId]: 'not_friends' }));
+        }
+    }, [currentUser]);
+
+
     useEffect(() => {
         if (authLoading || !currentUser) {
             setLoading(false);
@@ -44,33 +66,14 @@ export default function FindFriendsPage() {
         }
 
         setLoading(true);
-        // 1. Fetch all users except the current one
         const usersQuery = query(collection(db, 'users'), where('uid', '!=', currentUser.uid));
-
-        // 2. Set up a listener for the users
+        
         const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
             const usersData = snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as User));
             setAllUsers(usersData);
 
-            // 3. For each user, determine the friendship status
-            usersData.forEach(async (user) => {
-                setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'loading' }));
-                
-                const friendDocRef = doc(db, `users/${currentUser.uid}/friends/${user.uid}`);
-                const sentRequestDocRef = doc(db, `friendRequests/${currentUser.uid}_${user.uid}`);
-
-                const [friendSnap, sentSnap] = await Promise.all([
-                    getDoc(friendDocRef),
-                    getDoc(sentRequestDocRef)
-                ]);
-
-                if (friendSnap.exists()) {
-                    setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'friends' }));
-                } else if (sentSnap.exists()) {
-                    setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'request_sent' }));
-                } else {
-                    setFriendshipStatuses(prev => ({ ...prev, [user.uid]: 'not_friends' }));
-                }
+            usersData.forEach(user => {
+                updateFriendshipStatus(user.uid);
             });
             setLoading(false);
         }, (error) => {
@@ -81,7 +84,7 @@ export default function FindFriendsPage() {
 
         return () => unsubscribe();
 
-    }, [currentUser, authLoading, toast]);
+    }, [currentUser, authLoading, toast, updateFriendshipStatus]);
 
 
     useEffect(() => {
@@ -176,7 +179,7 @@ export default function FindFriendsPage() {
                         <div key={user.uid} className="flex items-center justify-between p-3 bg-card rounded-lg shadow-sm">
                             <div className="flex items-center gap-4">
                                 <Avatar>
-                                    <AvatarImage src={user.photoURL} alt={user.displayName} />
+                                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName} />
                                     <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
                                 </Avatar>
                                 <div>
