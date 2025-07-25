@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, query, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -26,53 +26,64 @@ export default function FindFriendsPage() {
     const [friendUids, setFriendUids] = useState<Set<string>>(new Set());
     const [requestUids, setRequestUids] = useState<Set<string>>(new Set());
 
+    const getInitials = (name: string | null | undefined) => {
+        if (!name) return '??';
+        return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
+    };
+
+    const fetchInitialData = useCallback(async (uid: string) => {
+        setLoading(true);
+        try {
+            const usersCol = collection(db, 'users');
+            const userSnapshot = await getDocs(usersCol);
+            const allUsers = userSnapshot.docs.map(doc => doc.data() as User);
+            setUsers(allUsers.filter(u => u.uid !== uid));
+        } catch (error) {
+            console.error("Error fetching users: ", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            setLoading(false);
+            return;
+        }
 
-        const fetchInitialData = async () => {
-            setLoading(true);
-            try {
-                // Fetch all users from a server component/function if possible,
-                // for now, we'll fetch directly, assuming rules allow it.
-                const usersCol = collection(db, 'users');
-                const userSnapshot = await getDocs(usersCol);
-                const allUsers = userSnapshot.docs.map(doc => doc.data() as User);
-                setUsers(allUsers.filter(u => u.uid !== currentUser.uid));
-            } catch (error) {
-                console.error("Error fetching users: ", error);
-            }
-        };
+        fetchInitialData(currentUser.uid);
 
-        fetchInitialData();
-
-        // Listen for friends
         const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
         const unsubscribeFriends = onSnapshot(friendsQuery, (snapshot) => {
             setFriendUids(new Set(snapshot.docs.map(doc => doc.id)));
         });
 
-        // Listen for friend requests (sent and received)
         const sentRequestsQuery = query(collection(db, 'friendRequests'), where('from', '==', currentUser.uid));
-        const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', currentUser.uid));
-
         const unsubscribeSent = onSnapshot(sentRequestsQuery, (snapshot) => {
             const sentUids = snapshot.docs.map(doc => doc.data().to);
-            setRequestUids(prev => new Set([...Array.from(prev), ...sentUids]));
+            setRequestUids(prev => {
+                const newSet = new Set(prev);
+                sentUids.forEach(uid => newSet.add(uid));
+                return newSet;
+            });
         });
 
+        const receivedRequestsQuery = query(collection(db, 'friendRequests'), where('to', '==', currentUser.uid));
         const unsubscribeReceived = onSnapshot(receivedRequestsQuery, (snapshot) => {
             const receivedUids = snapshot.docs.map(doc => doc.data().from);
-            setRequestUids(prev => new Set([...Array.from(prev), ...receivedUids]));
+            setRequestUids(prev => {
+                const newSet = new Set(prev);
+                receivedUids.forEach(uid => newSet.add(uid));
+                return newSet;
+            });
         });
-        
-        setLoading(false);
 
         return () => {
             unsubscribeFriends();
             unsubscribeSent();
             unsubscribeReceived();
         };
-    }, [currentUser]);
+    }, [currentUser, fetchInitialData]);
 
     const filteredUsers = useMemo(() => {
         return users.filter(user => 
@@ -82,10 +93,6 @@ export default function FindFriendsPage() {
         );
     }, [users, searchTerm, friendUids, requestUids]);
 
-    const getInitials = (name: string | null | undefined) => {
-        if (!name) return '??';
-        return name.split(' ').map((n) => n[0]).slice(0, 2).join('');
-    };
 
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6">
@@ -108,7 +115,7 @@ export default function FindFriendsPage() {
                 />
             </div>
 
-            {loading && users.length === 0 ? (
+            {loading ? (
                 <div className="flex justify-center mt-8">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
