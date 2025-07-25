@@ -56,7 +56,7 @@ export default function FindFriendsPage() {
 
                 // 2. Get current user's friends and sent requests
                 const friendsQuery = query(collection(db, `users/${currentUser.uid}/friends`));
-                const requestsQuery = query(collection(db, 'friendRequests'), where => where('from.uid', '==', currentUser.uid));
+                const requestsQuery = query(collection(db, 'friendRequests'));
                 
                 const [friendsSnapshot, requestsSnapshot] = await Promise.all([
                     getDocs(friendsQuery),
@@ -64,7 +64,11 @@ export default function FindFriendsPage() {
                 ]);
 
                 const friendUids = new Set(friendsSnapshot.docs.map(doc => doc.id));
-                const sentRequestUids = new Set(requestsSnapshot.docs.map(doc => (doc.data().to as UserInfo).uid));
+                const sentRequestUids = new Set(requestsSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return data.from?.uid === currentUser.uid ? data.to?.uid : null;
+                }).filter(Boolean));
+
 
                 // 3. Set initial statuses
                 const statuses: Record<string, FriendshipStatus> = {};
@@ -104,7 +108,12 @@ export default function FindFriendsPage() {
         if (!currentUser) return;
         setActionLoading(friend.uid);
         try {
-            await sendFriendRequest(currentUser, friend);
+            const fromUser = {
+                uid: currentUser.uid,
+                displayName: currentUser.displayName,
+                photoURL: currentUser.photoURL,
+            };
+            await sendFriendRequest(fromUser, friend);
             toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
             setFriendshipStatuses(prev => ({...prev, [friend.uid]: 'request_sent'}));
         } catch (error: any) {
@@ -197,10 +206,4 @@ export default function FindFriendsPage() {
             )}
         </div>
     );
-}
-
-interface UserInfo {
-  uid: string;
-  displayName: string;
-  photoURL?: string | null;
 }

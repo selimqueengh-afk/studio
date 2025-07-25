@@ -47,13 +47,13 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
   // Ensure data is not undefined before setting
   const fromData = {
     uid: fromUser.uid,
-    displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
+    displayName: fromUser.displayName || null,
     photoURL: fromUser.photoURL || null,
   };
 
   const toData = {
     uid: toUser.uid,
-    displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
+    displayName: toUser.displayName || null,
     photoURL: toUser.photoURL || null,
   };
 
@@ -73,13 +73,13 @@ export const acceptFriendRequest = async (
 
   const friendDataForCurrentUser = {
     uid: fromUser.uid,
-    displayName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
+    displayName: fromUser.displayName || null,
     photoURL: fromUser.photoURL || null,
   };
 
   const currentUserDataForFriend = {
     uid: toUser.uid,
-    displayName: toUser.displayName || 'Bilinmeyen Kullanıcı',
+    displayName: toUser.displayName || null,
     photoURL: toUser.photoURL || null,
   };
 
