@@ -4,12 +4,8 @@
     "rules_version": "2",
     "service": "cloud.firestore",
     "match": "/databases/{database}/documents",
-    "function isSignedIn()": {
-      "return": "request.auth != null;"
-    },
-    "function isUser(userId)": {
-      "return": "isSignedIn() && request.auth.uid == userId;"
-    },
+    "function isSignedIn()": "return request.auth != null;",
+    "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
     "match": "/users/{userId}",
     "allow": "read: if isSignedIn(); write: if isUser(userId);",
     "match": "/users/{userId}/friends/{friendId}",
@@ -22,3 +18,4 @@
     "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(request.resource.data.roomId || roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
   }
 }
+

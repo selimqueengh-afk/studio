@@ -2,21 +2,19 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { collection, onSnapshot, query, getDocs } from 'firebase/firestore';
+import { useRouter, usePathname } from 'next/navigation';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { Loader2, Search, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
-import { createOrGetRoom } from '@/lib/rooms';
-import { usePathname } from 'next/navigation';
 
-interface RoomParticipant {
+interface Friend {
     uid: string;
     displayName: string;
     photoURL?: string;
@@ -24,75 +22,62 @@ interface RoomParticipant {
 
 interface Room {
     id: string;
-    otherParticipant: RoomParticipant | null;
+    otherParticipant: Friend | null;
 }
 
 export default function RoomList() {
   const { user } = useAuth();
   const router = useRouter();
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [loadingFriends, setLoadingFriends] = useState(true);
   const pathname = usePathname();
   const { toast } = useToast();
   const { setOpenMobile } = useSidebar();
 
-
   useEffect(() => {
     if (!user) {
-      setLoadingRooms(false);
-      setRooms([]);
+      setLoadingFriends(false);
       return;
     }
 
-    setLoadingRooms(true);
-    const roomsQuery = query(collection(db, 'rooms'));
-
-    const unsubscribe = onSnapshot(roomsQuery, async (snapshot) => {
-        const userRooms: Room[] = [];
-        const userDocs = new Map<string, RoomParticipant>();
-
-        for (const roomDoc of snapshot.docs) {
-            const roomData = roomDoc.data();
-            const participants = roomData.participants || {};
-
-            if (participants[user.uid]) {
-                const otherParticipantId = Object.keys(participants).find(p => p !== user.uid);
-                
-                let otherParticipant: RoomParticipant | null = null;
-                if (otherParticipantId) {
-                    if (userDocs.has(otherParticipantId)) {
-                        otherParticipant = userDocs.get(otherParticipantId)!;
-                    } else {
-                        const userDoc = await getDocs(query(collection(db, "users"), where("uid", "==", otherParticipantId)));
-                        if (!userDoc.empty) {
-                           const userData = userDoc.docs[0].data();
-                           otherParticipant = {
-                               uid: userData.uid,
-                               displayName: userData.displayName,
-                               photoURL: userData.photoURL
-                           };
-                           userDocs.set(otherParticipantId, otherParticipant);
-                        }
-                    }
-                }
-                userRooms.push({ id: roomDoc.id, otherParticipant });
-            }
-        }
-        
-        setRooms(userRooms);
-        setLoadingRooms(false);
+    setLoadingFriends(true);
+    const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
+    const unsubscribe = onSnapshot(friendsQuery, (snapshot) => {
+      const friendsList = snapshot.docs.map(doc => doc.data() as Friend);
+      setFriends(friendsList);
+      setLoadingFriends(false);
     }, (error) => {
-        console.error("Error fetching rooms: ", error);
-        toast({
-          variant: 'destructive',
-          title: 'Hata',
-          description: 'Sohbetler yüklenemedi.',
-        });
-        setLoadingRooms(false);
+      console.error("Error fetching friends: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'Arkadaş listesi yüklenemedi.',
+      });
+      setLoadingFriends(false);
     });
 
     return () => unsubscribe();
   }, [user, toast]);
+
+  useEffect(() => {
+    if (!user || friends.length === 0) {
+      setRooms([]);
+      return;
+    }
+    
+    const userRooms = friends.map(friend => {
+        const roomId = user.uid > friend.uid
+            ? `${user.uid}_${friend.uid}`
+            : `${friend.uid}_${user.uid}`;
+        return {
+            id: roomId,
+            otherParticipant: friend,
+        };
+    });
+    setRooms(userRooms);
+
+  }, [user, friends]);
 
 
   const handleSelectRoom = (roomId: string) => {
@@ -110,7 +95,7 @@ export default function RoomList() {
       </div>
       
        <nav className="flex flex-col gap-1 flex-1 overflow-auto">
-        {loadingRooms ? (
+        {loadingFriends ? (
           <div className="flex justify-center items-center h-full">
               <Loader2 className="h-6 w-6 animate-spin" />
           </div>
@@ -136,7 +121,7 @@ export default function RoomList() {
             })
         ) : (
           <div className="text-sm text-muted-foreground text-center py-4">
-             Henüz sohbetiniz yok.
+             Henüz arkadaşınız yok.
           </div>
         )}
         </nav>
