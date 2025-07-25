@@ -34,15 +34,12 @@ export default function RoomList() {
 
 
   useEffect(() => {
-    // If there is no user, we are not logged in.
-    // Clear friends and stop loading.
     if (!user) {
       setFriends([]);
       setLoadingFriends(false);
       return;
     }
 
-    // When there IS a user, start fetching friends.
     setLoadingFriends(true);
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
 
@@ -52,7 +49,7 @@ export default function RoomList() {
             ...doc.data()
         })) as Friend[];
         setFriends(friendsList);
-        setLoadingFriends(false); // We have a result (even if empty), stop loading.
+        setLoadingFriends(false);
     }, (error) => {
         console.error("Error fetching friends: ", error);
         toast({
@@ -60,10 +57,9 @@ export default function RoomList() {
           title: 'Hata',
           description: 'Arkadaşlar yüklenemedi.',
         });
-        setLoadingFriends(false); // Stop loading on error too.
+        setLoadingFriends(false);
     });
 
-    // Cleanup the listener when the component unmounts or user changes.
     return () => unsubscribe();
   }, [user, toast]);
 

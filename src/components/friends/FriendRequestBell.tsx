@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 interface FriendRequest {
     id: string;
     from: string;
-    fromName: string;
+    fromName?: string;
     fromPhotoURL?: string;
 }
 
@@ -41,6 +41,9 @@ export default function FriendRequestBell() {
         const unsubscribe = onSnapshot(requestsQuery, async (snapshot) => {
             const requestsPromises = snapshot.docs.map(async (requestDoc) => {
                 const requestData = requestDoc.data();
+                if (!requestData.from) {
+                    return null; // Skip if from is missing
+                }
                 const userDocSnap = await getDoc(doc(db, 'users', requestData.from));
                 const userData = userDocSnap.data();
                 return {
@@ -50,7 +53,7 @@ export default function FriendRequestBell() {
                     fromPhotoURL: userData?.photoURL
                 } as FriendRequest;
             });
-            const newRequests = await Promise.all(requestsPromises);
+            const newRequests = (await Promise.all(requestsPromises)).filter(Boolean) as FriendRequest[];
             setRequests(newRequests);
         });
 
@@ -117,7 +120,7 @@ export default function FriendRequestBell() {
                                         <AvatarImage src={req.fromPhotoURL} />
                                         <AvatarFallback>{getInitials(req.fromName)}</AvatarFallback>
                                     </Avatar>
-                                    <span className="text-sm font-medium">{req.fromName}</span>
+                                    <span className="text-sm font-medium">{req.fromName || 'Bilinmeyen Kullanıcı'}</span>
                                 </div>
                                 <div className="flex gap-1">
                                     <Button size="icon" variant="ghost" className="h-7 w-7 text-green-500" onClick={() => handleAccept(req.from)} disabled={!!isUpdating}>
@@ -137,4 +140,3 @@ export default function FriendRequestBell() {
         </Popover>
     )
 }
-
