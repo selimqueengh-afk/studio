@@ -16,7 +16,6 @@ export default function ReelsPage() {
         setSelectedReel(reel);
     };
 
-
     if (!reels || reels.length === 0) {
         return (
             <div className="h-screen w-full bg-black flex flex-col items-center justify-center text-white p-4 text-center">
