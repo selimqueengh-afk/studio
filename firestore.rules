@@ -4,41 +4,42 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function isUser(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Rules for the 'users' collection
+    // Allow signed-in users to list all users for the 'find-friends' page,
+    // and only allow users to update their own profile.
     match /users/{userId} {
-      allow read, list: if isSignedIn();
+      allow list, read: if isSignedIn();
       allow update: if isUser(userId);
-
-      // Rules for the 'friends' subcollection
+      
+      // Allow users to list and read their own friends list.
       match /friends/{friendId} {
         allow read, list: if isUser(userId);
       }
     }
 
-    // Rules for the 'friendRequests' collection
+    // Allow creating a request if the sender is the current user.
+    // Allow reading/deleting a request if the user is either the sender or receiver.
     match /friendRequests/{requestId} {
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.from.uid;
-      allow read, update, delete: if isSignedIn() && 
-                                   (request.auth.uid == resource.data.from.uid || 
-                                    request.auth.uid == resource.data.to.uid);
+      allow read, update, delete: if isSignedIn() && (request.auth.uid == resource.data.from.uid || request.auth.uid == resource.data.to.uid);
     }
-    
-    // Rules for 'rooms' and 'messages'
+
+    // Allow read/write to a room only if the user is a participant.
     match /rooms/{roomId} {
       allow read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;
 
+      // Allow creating messages if the user is a participant of the room.
+      // Disallow updating/deleting messages.
       match /messages/{messageId} {
         allow read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true;
-        allow update, delete: if false; // Messages cannot be edited or deleted
+        allow update, delete: if false;
       }
     }
   }

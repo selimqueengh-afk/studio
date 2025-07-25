@@ -7,7 +7,7 @@
     "function isSignedIn()": "return request.auth != null;",
     "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
     "match": "/users/{userId}",
-    "allow": "read, list: if isSignedIn(); update: if isUser(userId);",
+    "allow": "list, read: if isSignedIn(); update: if isUser(userId);",
     "match": "/users/{userId}/friends/{friendId}",
     "allow": "read, list: if isUser(userId);",
     "match": "/friendRequests/{requestId}",
