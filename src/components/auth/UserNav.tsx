@@ -16,8 +16,12 @@ import { LogOut, User as UserIcon, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function UserNav() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const router = useRouter();
+
+  if (loading) {
+    return null; // Or a skeleton loader
+  }
 
   if (!user) {
     return null;

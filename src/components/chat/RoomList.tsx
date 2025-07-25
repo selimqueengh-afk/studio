@@ -24,7 +24,7 @@ interface Friend {
 }
 
 export default function RoomList() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
@@ -34,11 +34,15 @@ export default function RoomList() {
 
 
   useEffect(() => {
+    if (authLoading) {
+      setLoadingFriends(true);
+      return;
+    }
     if (!user) {
         setLoadingFriends(false);
+        setFriends([]);
         return;
     }
-    setLoadingFriends(true);
     
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
 
@@ -60,7 +64,7 @@ export default function RoomList() {
     });
 
     return () => unsubscribe();
-  }, [toast, user]);
+  }, [toast, user, authLoading]);
 
 
   const handleSelectFriendForDM = async (selectedFriend: Friend) => {
