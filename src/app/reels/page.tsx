@@ -152,17 +152,16 @@ export default function ReelsPage() {
               data-ai-hint="youtube short"
               loading="lazy"
             />
-            <iframe
-                src={embedUrl}
-                title={reel.description}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className={cn(
-                    "absolute top-0 left-0 w-full h-full transition-opacity duration-300",
-                    isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
-                )}
-            ></iframe>
+            {isPlaying && (
+                <iframe
+                    src={embedUrl}
+                    title={reel.description}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="absolute top-0 left-0 w-full h-full"
+                ></iframe>
+            )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
           
