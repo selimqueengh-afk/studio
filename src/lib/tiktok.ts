@@ -14,10 +14,10 @@ export interface Reel {
 }
 
 const mapApiResponse = (apiData: any): Reel[] => {
-    if (!apiData || !apiData.data || !Array.isArray(apiData.data)) {
+    if (!apiData || !apiData.aweme_list || !Array.isArray(apiData.aweme_list)) {
         return [];
     }
-    return apiData.data.map((item: any) => ({
+    return apiData.aweme_list.map((item: any) => ({
         id: item.aweme_id,
         description: item.desc,
         videoUrl: item.video.play_addr.url_list[0],
@@ -36,7 +36,7 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         throw new Error('RapidAPI anahtarı veya host bilgisi eksik. Lütfen .env.local dosyasını kontrol edin.');
     }
     
-    const url = 'https://tiktok-api23.p.rapidapi.com/feed';
+    const url = 'https://tiktok-api23.p.rapidapi.com/aweme/v1/feed/';
     const options = {
         method: 'GET',
         headers: {
