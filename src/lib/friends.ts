@@ -70,14 +70,32 @@ export const acceptFriendRequest = async (fromUid: string, toUid: string) => {
     throw new Error('Kullanıcı bulunamadı.');
   }
   
+  const fromUserData = fromUserSnap.data();
+  const toUserData = toUserSnap.data();
+
+  // Create clean friend data objects to avoid nesting issues
+  const fromUserFriendData = {
+    uid: fromUserData.uid,
+    displayName: fromUserData.displayName,
+    email: fromUserData.email,
+    photoURL: fromUserData.photoURL || null,
+  };
+
+  const toUserFriendData = {
+    uid: toUserData.uid,
+    displayName: toUserData.displayName,
+    email: toUserData.email,
+    photoURL: toUserData.photoURL || null,
+  };
+
   const batch = writeBatch(db);
 
   // Add each user to the other's friends subcollection
   const toUserFriendRef = doc(collection(toUserDocRef, 'friends'), fromUid);
-  batch.set(toUserFriendRef, fromUserSnap.data());
+  batch.set(toUserFriendRef, fromUserFriendData);
 
   const fromUserFriendRef = doc(collection(fromUserDocRef, 'friends'), toUid);
-  batch.set(fromUserFriendRef, toUserSnap.data());
+  batch.set(fromUserFriendRef, toUserFriendData);
 
   // Delete the friend request
   batch.delete(requestDocRef);
