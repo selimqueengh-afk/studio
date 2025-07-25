@@ -4,26 +4,7 @@
     "rules_version": "2",
     "service": "cloud.firestore",
     "match": "/databases/{database}/documents",
-
-    "function isSignedIn()": "return request.auth != null;",
-    "function isUser(userId)": "return isSignedIn() && request.auth.uid == userId;",
-
-    "match": "/users/{userId}",
-    "allow": "read: if isSignedIn(); write: if isUser(userId);",
-
-    "match": "/users/{userId}/friends/{friendId}",
-    "allow": "read: if isSignedIn() && isUser(userId);",
-    "allow": "write, delete: if isUser(userId);",
-
-    "match": "/friendRequests/{requestId}",
-    "allow": "read, list: if isSignedIn() && (resource == null || resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
-    "allow": "create: if isSignedIn() && request.resource.data.from.uid == request.auth.uid;",
-    "allow": "delete: if isSignedIn() && (resource.data.from.uid == request.auth.uid || resource.data.to.uid == request.auth.uid);",
-
-    "match": "/rooms/{roomId}",
-    "allow": "read, write: if isSignedIn() && resource.data.participants[request.auth.uid] == true;",
-
-    "match": "/rooms/{roomId}/messages/{messageId}",
-    "allow": "read, create: if isSignedIn() && get(/databases/$(database)/documents/rooms/$(roomId)).data.participants[request.auth.uid] == true; update, delete: if false;"
+    "match": "/{document=**}",
+    "allow": "read, write: if true;"
   }
 }
