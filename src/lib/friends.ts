@@ -39,7 +39,6 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
     throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
   if (reverseRequestSnap.exists()) {
-    // Automatically accept the request if the other user has already sent one.
     const fromUserInfo = { uid: toUser.uid, displayName: toUser.displayName, photoURL: toUser.photoURL };
     const toUserInfo = { uid: fromUser.uid, displayName: fromUser.displayName, photoURL: fromUser.photoURL };
     await acceptFriendRequest(reverseRequestId, fromUserInfo, toUserInfo);
@@ -60,20 +59,23 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
 export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
   const batch = writeBatch(db);
 
+  // Add friend to the current user's (toUser) friend list
   const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
   batch.set(toFriendRef, {
     uid: fromUser.uid,
-    displayName: fromUser.displayName,
+    displayName: fromUser.displayName || null,
     photoURL: fromUser.photoURL || null,
   });
 
+  // Add the current user (toUser) to the sender's (fromUser) friend list
   const fromFriendRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
   batch.set(fromFriendRef, {
     uid: toUser.uid,
-    displayName: toUser.displayName,
+    displayName: toUser.displayName || null,
     photoURL: toUser.photoURL || null,
   });
 
+  // Delete the friend request
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
 

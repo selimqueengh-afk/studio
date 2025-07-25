@@ -62,18 +62,18 @@ export default function FriendRequestBell() {
     
     const fromUser = { 
         uid: request.from, 
-        displayName: request.fromName, 
+        displayName: request.fromName || 'Bilinmeyen Kullanıcı',
         photoURL: request.fromPhoto || null
     };
     const toUser = { 
         uid: user.uid, 
-        displayName: user.displayName, 
+        displayName: user.displayName || 'Bilinmeyen Kullanıcı',
         photoURL: user.photoURL || null
     };
 
     try {
       await acceptFriendRequest(request.id, fromUser, toUser);
-      toast({ title: 'Başarılı', description: `${request.fromName || 'Kullanıcı'} artık arkadaşın.` });
+      toast({ title: 'Başarılı', description: `${fromUser.displayName} artık arkadaşın.` });
     } catch (error: any) {
       console.error("Accept error:", error);
       toast({ variant: 'destructive', title: 'Hata', description: error.message || 'İstek kabul edilemedi.' });
