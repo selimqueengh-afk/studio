@@ -62,7 +62,13 @@ export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReel
         setSending(friend.uid);
 
         try {
-            const roomId = await createOrGetRoom(user, friend);
+            const currentUserInfo = {
+                uid: user.uid,
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL
+            }
+            const roomId = await createOrGetRoom(currentUserInfo, friend);
             
             const reelData: Reel = {
                 id: reel.id,

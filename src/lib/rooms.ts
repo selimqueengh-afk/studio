@@ -1,43 +1,38 @@
-
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import { User } from 'firebase/auth';
 
-interface Friend {
+interface UserInfo {
     uid: string;
-    displayName: string;
-    email: string;
-    photoURL?: string;
+    displayName: string | null;
+    email: string | null;
+    photoURL?: string | null;
 }
 
-export const createOrGetRoom = async (currentUser: User, selectedFriend: Friend): Promise<string> => {
-    const currentUserUid = currentUser.uid;
-    const selectedUserUid = selectedFriend.uid;
-
-    // Create a consistent and unique room ID
-    const roomId = currentUserUid > selectedUserUid
-        ? `${currentUserUid}_${selectedUserUid}`
-        : `${selectedUserUid}_${currentUserUid}`;
+export const createOrGetRoom = async (user1: UserInfo, user2: UserInfo): Promise<string> => {
+    // Create a consistent and unique room ID by sorting UIDs
+    const roomId = user1.uid > user2.uid
+        ? `${user1.uid}_${user2.uid}`
+        : `${user2.uid}_${user1.uid}`;
     
     const roomDocRef = doc(db, 'rooms', roomId);
     const roomDoc = await getDoc(roomDocRef);
 
     if (!roomDoc.exists()) {
         await setDoc(roomDocRef, {
-            name: `DM with ${selectedFriend.displayName}`,
+            name: `DM between ${user1.displayName} and ${user2.displayName}`,
             createdAt: serverTimestamp(),
             isDirectMessage: true,
             participants: {
-              [currentUserUid]: true,
-              [selectedUserUid]: true,
+              [user1.uid]: true,
+              [user2.uid]: true,
             },
             participantNames: {
-                [currentUserUid]: currentUser.displayName,
-                [selectedUserUid]: selectedFriend.displayName
+                [user1.uid]: user1.displayName,
+                [user2.uid]: user2.displayName
             },
             participantPhotos: {
-                [currentUserUid]: currentUser.photoURL,
-                [selectedUserUid]: selectedFriend.photoURL
+                [user1.uid]: user1.photoURL || null,
+                [user2.uid]: user2.photoURL || null
             }
         });
     }

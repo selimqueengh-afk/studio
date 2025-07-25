@@ -11,6 +11,7 @@ import {
   getDoc,
   collection,
 } from 'firebase/firestore';
+import { createOrGetRoom } from './rooms';
 
 interface UserInfo {
   uid: string;
@@ -22,9 +23,6 @@ interface UserInfo {
 export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) => {
   const requestId = `${fromUser.uid}_${toUser.uid}`;
   const requestDocRef = doc(db, 'friendRequests', requestId);
-
-  // Önceki kontrolleri (getDoc, if blokları) kaldırdık.
-  // Direkt olarak arkadaşlık isteğini oluşturuyoruz.
 
   const fromData = {
     uid: fromUser.uid,
@@ -76,6 +74,9 @@ export const acceptFriendRequest = async (
 
   const requestDocRef = doc(db, 'friendRequests', requestId);
   batch.delete(requestDocRef);
+
+  // Proactively create the chat room
+  await createOrGetRoom(toUser, fromUser);
 
   await batch.commit();
 };
