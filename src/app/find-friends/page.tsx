@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { collection, query, onSnapshot, getDocs } from 'firebase/firestore';
+import { useState, useEffect, useCallback } from 'react';
+import { collection, query, onSnapshot, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Loader2, UserPlus, Search, ArrowLeft } from 'lucide-react';
+import { Loader2, UserPlus, Search, ArrowLeft, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
 import { sendFriendRequest } from '@/lib/friends';
@@ -22,11 +22,17 @@ interface User {
     photoURL?: string;
 }
 
+type FriendshipStatus = 'not_friends' | 'friends' | 'request_sent' | 'loading';
+
 export default function FindFriendsPage() {
     const { user: currentUser } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [users, setUsers] = useState<User[]>([]);
+    
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+    const [friendshipStatuses, setFriendshipStatuses] = useState<Record<string, FriendshipStatus>>({});
+    
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -38,35 +44,62 @@ export default function FindFriendsPage() {
         }
 
         const usersCol = collection(db, 'users');
-        const unsubscribe = onSnapshot(usersCol, (snapshot) => {
-            const allUsers = snapshot.docs
+        const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
+            const usersData = snapshot.docs
               .map(doc => ({ ...doc.data(), uid: doc.id } as User))
               .filter(u => u.uid !== currentUser.uid);
-            setUsers(allUsers);
+            setAllUsers(usersData);
             setLoading(false);
         }, (error) => {
             console.error("Error fetching users: ", error);
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => unsubscribeUsers();
     }, [currentUser]);
 
-    const filteredUsers = useMemo(() => {
-        if (!searchTerm) {
-            return users;
-        }
-        return users.filter(user =>
-            user.displayName.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [users, searchTerm]);
+    useEffect(() => {
+        if (!currentUser || allUsers.length === 0) return;
 
-    const handleSendRequest = async (friend: User) => {
+        const unsubs: (() => void)[] = [];
+        allUsers.forEach(user => {
+            const friendRef = doc(db, `users/${currentUser.uid}/friends/${user.uid}`);
+            const requestRef = doc(db, 'friendRequests', `${currentUser.uid}_${user.uid}`);
+
+            const unsub = onSnapshot(doc(db, 'users', currentUser.uid), async () => {
+                const friendSnap = await getDoc(friendRef);
+                const requestSnap = await getDoc(requestRef);
+                setFriendshipStatuses(prev => ({
+                    ...prev,
+                    [user.uid]: friendSnap.exists() 
+                                ? 'friends' 
+                                : requestSnap.exists() 
+                                ? 'request_sent' 
+                                : 'not_friends'
+                }));
+            });
+            unsubs.push(unsub);
+        });
+
+        return () => unsubs.forEach(unsub => unsub());
+
+    }, [allUsers, currentUser]);
+
+    useEffect(() => {
+        const filtered = allUsers.filter(user =>
+            user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredUsers(filtered);
+    }, [searchTerm, allUsers]);
+
+    const handleSendRequest = useCallback(async (friend: User) => {
         if (!currentUser) return;
         setActionLoading(friend.uid);
         try {
             await sendFriendRequest(currentUser, friend);
             toast({ title: 'Başarılı', description: 'Arkadaşlık isteği gönderildi.' });
+            setFriendshipStatuses(prev => ({...prev, [friend.uid]: 'request_sent'}));
         } catch (error: any) {
             toast({
                 variant: 'destructive',
@@ -76,8 +109,35 @@ export default function FindFriendsPage() {
         } finally {
             setActionLoading(null);
         }
-    };
+    }, [currentUser, toast]);
 
+    const renderButton = (user: User) => {
+        const status = friendshipStatuses[user.uid] || 'loading';
+
+        if (status === 'loading' || actionLoading === user.uid) {
+            return (
+                <Button size="sm" disabled>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Yükleniyor
+                </Button>
+            );
+        }
+
+        if (status === 'friends') {
+            return <Button size="sm" disabled variant="secondary"><UserCheck className="mr-2 h-4 w-4"/>Arkadaşlar</Button>;
+        }
+
+        if (status === 'request_sent') {
+            return <Button size="sm" disabled variant="outline">İstek Gönderildi</Button>;
+        }
+
+        return (
+            <Button size="sm" onClick={() => handleSendRequest(user)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Arkadaş Ekle
+            </Button>
+        );
+    };
 
     return (
         <div className="max-w-2xl mx-auto p-4 md:p-6">
@@ -93,7 +153,7 @@ export default function FindFriendsPage() {
             <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                    placeholder="Kullanıcı adı ara..."
+                    placeholder="Kullanıcı adı veya e-posta ara..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -118,18 +178,7 @@ export default function FindFriendsPage() {
                                     <p className="text-sm text-muted-foreground">{user.email}</p>
                                 </div>
                             </div>
-                            <Button 
-                                size="sm" 
-                                onClick={() => handleSendRequest(user)}
-                                disabled={actionLoading === user.uid}
-                            >
-                                {actionLoading === user.uid ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                )}
-                                Arkadaş Ekle
-                            </Button>
+                            {renderButton(user)}
                         </div>
                     )) : (
                         <p className="text-center text-muted-foreground mt-8">
