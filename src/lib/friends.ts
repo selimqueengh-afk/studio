@@ -34,7 +34,7 @@ export const sendFriendRequest = async (fromUid: string, toUid: string) => {
   // If an inverse request exists, it means the other user already sent us a request.
   // We can just accept it.
   if (inverseRequestSnap.exists()) {
-    await acceptFriendRequest(toUid, fromUid);
+    await acceptFriendRequest(fromUid, toUid);
     return;
   }
   
@@ -43,10 +43,11 @@ export const sendFriendRequest = async (fromUid: string, toUid: string) => {
     throw new Error('Arkadaşlık isteği zaten gönderilmiş.');
   }
 
+  // The createdAt field was causing a permission denied error because the security rules
+  // did not account for it. It's not essential for the request logic, so it's removed.
   await setDoc(requestRef, {
     from: fromUid,
     to: toUid,
-    createdAt: serverTimestamp(),
   });
 };
 
