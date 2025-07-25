@@ -13,9 +13,9 @@ import {
 
 interface UserInfo {
     uid: string;
-    displayName: string;
+    displayName: string | null;
     email: string;
-    photoURL?: string;
+    photoURL?: string | null;
 }
 
 export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) => {
@@ -25,14 +25,16 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
   const requestDocRef = doc(db, 'friendRequests', requestId);
   const reverseRequestDocRef = doc(db, 'friendRequests', reverseRequestId);
   const friendDocRef = doc(db, `users/${fromUser.uid}/friends/${toUser.uid}`);
+  const friendOfFriendDocRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);
 
-  const [requestSnap, reverseRequestSnap, friendSnap] = await Promise.all([
+  const [requestSnap, reverseRequestSnap, friendSnap, friendOfFriendSnap] = await Promise.all([
     getDoc(requestDocRef),
     getDoc(reverseRequestDocRef),
-    getDoc(friendDocRef)
+    getDoc(friendDocRef),
+    getDoc(friendOfFriendDocRef)
   ]);
 
-  if (friendSnap.exists()) {
+  if (friendSnap.exists() || friendOfFriendSnap.exists()) {
     throw new Error('Bu kullanıcı zaten arkadaşınız.');
   }
   if (requestSnap.exists()) {
@@ -44,16 +46,20 @@ export const sendFriendRequest = async (fromUser: UserInfo, toUser: UserInfo) =>
 
   await setDoc(requestDocRef, {
     from: fromUser.uid,
-    fromName: fromUser.displayName,
+    fromName: fromUser.displayName || 'Bilinmeyen Kullanıcı',
     fromPhoto: fromUser.photoURL || null,
     to: toUser.uid,
-    toName: toUser.displayName,
+    toName: toUser.displayName || 'Bilinmeyen Kullanıcı',
     toPhoto: toUser.photoURL || null,
     createdAt: serverTimestamp(),
   });
 };
 
 export const acceptFriendRequest = async (requestId: string, fromUser: UserInfo, toUser: UserInfo) => {
+  if (!fromUser.displayName || !toUser.displayName) {
+      throw new Error("Kullanıcı bilgileri eksik, istek kabul edilemedi.");
+  }
+
   const batch = writeBatch(db);
 
   const toFriendRef = doc(db, `users/${toUser.uid}/friends/${fromUser.uid}`);

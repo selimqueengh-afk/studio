@@ -59,8 +59,18 @@ export default function FriendRequestBell() {
   const handleAccept = async (request: FriendRequest) => {
     if (!user) return;
     setActionLoading(request.id);
-    const fromUser = { uid: request.from, displayName: request.fromName, email: '', photoURL: request.fromPhoto || undefined };
-    const toUser = { uid: request.to, displayName: request.toName, email: user.email || '', photoURL: request.toPhoto || undefined };
+    const fromUser = { 
+        uid: request.from, 
+        displayName: request.fromName, 
+        email: '', 
+        photoURL: request.fromPhoto || undefined 
+    };
+    const toUser = { 
+        uid: request.to, 
+        displayName: request.toName || user.displayName || '', 
+        email: user.email || '', 
+        photoURL: request.toPhoto || user.photoURL || undefined 
+    };
 
     try {
       await acceptFriendRequest(request.id, fromUser, toUser);
@@ -115,7 +125,7 @@ export default function FriendRequestBell() {
                         <AvatarImage src={req.fromPhoto || undefined} alt={req.fromName} />
                         <AvatarFallback>{getInitials(req.fromName)}</AvatarFallback>
                     </Avatar>
-                    <p className="flex-1 font-semibold truncate">{req.fromName}</p>
+                    <p className="flex-1 font-semibold truncate">{req.fromName || 'Bilinmeyen Kullanıcı'}</p>
                  </div>
                  <div className="flex gap-2 mt-2 self-end">
                     <Button size="sm" onClick={() => handleAccept(req)} disabled={actionLoading === req.id}>
