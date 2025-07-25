@@ -34,14 +34,19 @@ export default function RoomList() {
 
 
   useEffect(() => {
-    // If auth is loading, or there's no user, don't do anything yet.
+    // Start loading whenever auth state changes
+    setLoadingFriends(true);
+
+    // If auth is still loading, or there's no user, wait.
     if (authLoading || !user) {
-      setLoadingFriends(true); // Keep showing loader
+      // If auth is done and there's still no user, stop loading.
+      if (!authLoading) {
+        setLoadingFriends(false);
+      }
       return;
     }
     
     // Once we have a user, start fetching friends.
-    setLoadingFriends(true);
     const friendsQuery = query(collection(db, 'users', user.uid, 'friends'));
 
     const unsubscribe = onSnapshot(friendsQuery, (snapshot) => {
@@ -50,7 +55,7 @@ export default function RoomList() {
             ...doc.data()
         })) as Friend[];
         setFriends(friendsList);
-        setLoadingFriends(false); // We have a result, stop loading.
+        setLoadingFriends(false); // We have a result (even if empty), stop loading.
     }, (error) => {
         console.error("Error fetching friends: ", error);
         toast({
@@ -58,7 +63,7 @@ export default function RoomList() {
           title: 'Hata',
           description: 'Arkadaşlar yüklenemedi.',
         });
-        setLoadingFriends(false);
+        setLoadingFriends(false); // Stop loading on error too.
     });
 
     return () => unsubscribe();
