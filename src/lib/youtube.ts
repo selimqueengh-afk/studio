@@ -13,7 +13,7 @@ export interface Reel {
 
 // TEMPORARY FIX: Using the key directly to bypass environment variable issues.
 // This is not recommended for production.
-const YOUTUBE_API_KEY = "AIzaSyCqEzmYFkSe2Ef5LbC-LLY6olXDmydZ-ek";
+const YOUTUBE_API_KEY = "AIzaSyA-fOSZR_D_I5F4OS_TVT_HwEgkZI5GgrY";
 
 const youtube = google.youtube({
   version: 'v3',
@@ -28,7 +28,7 @@ export async function getYoutubeShorts(pageToken?: string): Promise<{ reels: Ree
     
     const response = await youtube.search.list({
       part: ['snippet'],
-      q: '"manface roblox" #shorts -"girl"',
+      q: 'roblox sigma | "roblox funny" | "roblox egor" | "GigaChad"',
       type: ['video'],
       maxResults: 10,
       videoDuration: 'short',
