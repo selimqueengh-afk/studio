@@ -13,69 +13,75 @@ export interface Reel {
     };
 }
 
-// This function maps the API response to our Reel interface.
-// NOTE: This is a guess based on common Instagram API structures.
-// The actual structure from the /community endpoint is likely different and may not contain videos.
-const mapApiResponse = (apiResponse: any): Reel[] => {
-    if (!apiResponse || !apiResponse.data || !apiResponse.data.latest_posts) {
-        console.warn("API response is not in the expected format or doesn't contain posts.", apiResponse);
-        return [];
+// A list of Instagram post URLs to fetch
+const postUrls = [
+    'https://www.instagram.com/p/C8_A388R5Fb/',
+    'https://www.instagram.com/p/C89Af6FRaQ3/',
+    'https://www.instagram.com/p/C8y4J5sxbJ8/',
+    'https://www.instagram.com/p/C8s5XoayQoq/',
+    'https://www.instagram.com/p/C8xL_9vSy2C/'
+];
+
+
+// This function maps the API response for a single post to our Reel interface.
+const mapApiResponse = (apiResponse: any): Reel | null => {
+    // The actual data seems to be nested under a 'data' property
+    const post = apiResponse?.data;
+    if (!post || !post.id || !post.video_url) {
+        // If the post is not a video or data is missing, skip it.
+        return null;
     }
 
-    return apiResponse.data.latest_posts.map((post: any) => ({
+    return {
         id: post.id,
         description: post.caption || 'No description',
-        // IMPORTANT: The API might not provide a direct video URL. This is a placeholder.
-        videoUrl: post.display_url || '', 
+        videoUrl: post.video_url, // Direct video URL from the API response
         author: {
-            nickname: apiResponse.data.username || 'unknown',
-            avatar: apiResponse.data.profile_pic_url || 'https://placehold.co/100x100.png',
+            nickname: post.owner?.username || 'unknown_user',
+            avatar: post.owner?.profile_pic_url || 'https://placehold.co/100x100.png',
         },
-    }));
+    };
 };
 
 export const fetchTiktokFeed = async (): Promise<Reel[]> => {
-    const url = 'https://instagram-statistics-api.p.rapidapi.com/community?url=https%3A%2F%2Fwww.instagram.com%2Ftherock%2F';
-    
+    const apiKey = process.env.RAPIDAPI_KEY;
+    if (!apiKey) {
+        console.error('RapidAPI Key is not configured.');
+        return [];
+    }
+
     const options = {
         method: 'GET',
         headers: {
-            'x-rapidapi-key': process.env.RAPIDAPI_KEY!,
+            'x-rapidapi-key': apiKey,
             'x-rapidapi-host': 'instagram-statistics-api.p.rapidapi.com'
         }
     };
 
     try {
-        console.log(`Fetching from Instagram API: ${url}`);
-        const response = await fetch(url, options);
+        const promises = postUrls.map(postUrl => {
+            const url = `https://instagram-statistics-api.p.rapidapi.com/posts/one?postUrl=${encodeURIComponent(postUrl)}`;
+            return fetch(url, options).then(res => {
+                if (!res.ok) {
+                    // Log error but don't throw, so other requests can succeed
+                    console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`);
+                    return null;
+                }
+                return res.json();
+            });
+        });
 
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
-            throw new Error(`API'den veri alınamadı: ${response.statusText}`);
-        }
+        const results = await Promise.all(promises);
         
-        const responseText = await response.text();
-        if (!responseText) {
-            console.warn('TikTok API returned an empty response.');
-            return [];
-        }
+        const reels = results
+            .map(result => result ? mapApiResponse(result) : null)
+            .filter((reel): reel is Reel => reel !== null); // Filter out any null values
 
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (e) {
-            console.error('Failed to parse JSON response from TikTok API:', responseText);
-            throw new Error('TikTok API\'sinden gelen yanıt JSON formatında değil.');
-        }
-        
-        // Since this endpoint is for community stats, it likely won't return video posts.
-        // We'll attempt to map it, but it will probably return an empty array.
-        return mapApiResponse(result);
+        return reels;
 
     } catch (error) {
         console.error('Instagram akışı alınırken bir hata oluştu:', error);
-        // Return an empty array on error to prevent the page from crashing.
-        return [];
+        return []; // Return an empty array on catastrophic error
     }
 };
+
