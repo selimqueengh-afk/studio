@@ -20,7 +20,7 @@ const mapApiResponse = (apiData: any): Reel[] => {
     return apiData.data.itemList.map((item: any) => ({
         id: item.id,
         description: item.desc,
-        videoUrl: item.video.playAddr, // Using playAddr which is more reliable
+        videoUrl: item.video.playAddr,
         author: {
             nickname: item.author.uniqueId,
             avatar: item.author.avatarThumb,
@@ -36,7 +36,6 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         throw new Error('RapidAPI anahtarı veya host bilgisi eksik. Lütfen .env.local dosyasını kontrol edin.');
     }
     
-    // Using the user posts endpoint as suggested by the user
     const url = new URL('https://tiktok-api23.p.rapidapi.com/api/user/posts');
     url.searchParams.append('secUid', 'MS4wLjABAAAAqB08cUbXaDWqbD6MCga2RbGTuhfO2EsHayBYx08NDrN7IE3jQuRDNNN6YwyfH6_6');
     url.searchParams.append('count', '12');
@@ -70,6 +69,6 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         return mapApiResponse(result);
     } catch (error) {
         console.error('TikTok akışı alınırken bir hata oluştu:', error);
-        return []; // Hata durumunda boş bir dizi döndür
+        return [];
     }
 };
