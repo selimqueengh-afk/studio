@@ -20,7 +20,7 @@ import { Loader2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getInitials } from '@/lib/utils';
 import { createOrGetRoom } from '@/lib/rooms';
-import { Reel } from '@/lib/tiktok';
+import { Reel } from '@/lib/reels';
 
 
 interface Friend {

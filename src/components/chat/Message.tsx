@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Reel } from '@/lib/tiktok';
+import { Reel } from '@/lib/reels';
 import { getInitials } from '@/lib/utils';
 
 interface MessageProps {
@@ -28,17 +28,22 @@ export default function Message({ message, isCurrentUser }: MessageProps) {
 
   const renderMessageContent = () => {
     if (message.type === 'reel' && message.reel) {
+        const youtubeEmbedUrl = message.reel.videoUrl.includes('embed') 
+        ? message.reel.videoUrl
+        : `https://www.youtube.com/embed/${message.reel.id}?autoplay=0&controls=1&modestbranding=1`;
+
       return (
         <div className="relative w-64 rounded-lg border bg-card overflow-hidden group">
           <div className="aspect-video bg-black">
-             <video
-                src={message.reel.videoUrl}
-                controls
-                preload="metadata"
+             <iframe
+                src={youtubeEmbedUrl}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
                 className="w-full h-full object-contain"
-             >
-                Tarayıcınız video etiketini desteklemiyor.
-             </video>
+             ></iframe>
           </div>
           <div className="p-2">
             <p className="font-semibold text-sm truncate">@{message.reel.author.nickname}</p>

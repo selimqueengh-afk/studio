@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '@/lib/utils';
 import Link from 'next/link';
 import { createOrGetRoom } from '@/lib/rooms';
-import { Reel } from '@/lib/tiktok';
+import { Reel } from '@/lib/reels';
 
 
 interface MessageData {
