@@ -4,89 +4,30 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
-import YouTube from 'react-youtube';
-import type { YouTubePlayer } from 'react-youtube';
 
-
-function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisible: boolean; isMuted: boolean; toggleMute: () => void; }) {
-  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
-
-  // This useEffect handles playing and pausing based on visibility
-  useEffect(() => {
-    if (!player) return; // Guard clause: Don't do anything if the player isn't ready
-
-    if (isVisible) {
-      player.playVideo();
-    } else {
-      player.pauseVideo();
-    }
-  }, [isVisible, player]); // Dependency on player ensures it re-runs when player is ready
-  
-  // This useEffect handles mute state changes
-  useEffect(() => {
-    if (!player) return; // Guard clause: Don't do anything if the player isn't ready
-
-    if (isMuted) {
-      player.mute();
-    } else {
-      player.unMute();
-    }
-  }, [isMuted, player]); // Dependency on player ensures it re-runs when player is ready
-
-
-  const onReady = (event: { target: YouTubePlayer }) => {
-    const newPlayer = event.target;
-    setPlayer(newPlayer);
-    
-    // Sync initial state when player is ready
-    if (isMuted) {
-        newPlayer.mute();
-    } else {
-        newPlayer.unMute();
-    }
-    
-    // If the video is already visible when the player becomes ready, play it.
-    if (isVisible) {
-        newPlayer.playVideo();
-    }
-  };
-
-  const opts = {
-    height: '100%',
-    width: '100%',
-    playerVars: {
-      autoplay: 0, // We control autoplay manually
-      controls: 0,
-      modestbranding: 1,
-      loop: 1,
-      playlist: reel.id, // Required for loop
-      playsinline: 1,
-      mute: 1, // Start muted, we will unmute if necessary via state
-    },
-  };
+function ReelItem({ reel }: { reel: Reel; }) {
+  const youtubeEmbedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      <YouTube
-          videoId={reel.id}
-          opts={opts}
-          onReady={onReady}
+       <iframe
+          src={youtubeEmbedUrl}
+          title={reel.description}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
           className="w-full h-full object-contain absolute inset-0"
-      />
-      <div className="absolute top-0 left-0 right-0 bottom-0 z-10 flex flex-col justify-between" onClick={toggleMute}>
+       ></iframe>
+      <div className="absolute top-0 left-0 right-0 bottom-0 z-10 flex flex-col justify-between pointer-events-none">
         {/* Top Gradient and Header */}
         <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
             {/* Header content can go here if needed */}
-        </div>
-        
-        {/* Mute Icon on hover */}
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-            {isMuted ? <VolumeX className="h-12 w-12 text-white/50" /> : <Volume2 className="h-12 w-12 text-white/50" />}
         </div>
         
         {/* Bottom Gradient and Info */}
@@ -102,8 +43,7 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
                 <p className="text-sm line-clamp-2">{reel.description}</p>
               </div>
             </div>
-            {/* We use stopPropagation to prevent the mute toggle when clicking the share button */}
-            <div onClick={(e) => e.stopPropagation()}>
+            <div className="pointer-events-auto">
                 <ShareReelSheet reel={reel}>
                     <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
                         <Send className="h-6 w-6" />
@@ -120,38 +60,6 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
 
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
-  const [visibleReelIndex, setVisibleReelIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
-  const reelRefs = useRef<(HTMLElement | null)[]>([]);
-
-  useEffect(() => {
-    // Make sure we have refs before setting up the observer
-    if(reelRefs.current.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = parseInt(entry.target.getAttribute('data-index') || '0', 10);
-            setVisibleReelIndex(index);
-          }
-        });
-      },
-      { threshold: 0.7 } // Trigger when 70% of the video is visible
-    );
-
-    const currentRefs = reelRefs.current;
-    currentRefs.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
-
-    return () => {
-      currentRefs.forEach((ref) => {
-        if (ref) observer.unobserve(ref);
-      });
-    };
-  }, [shortsData]);
-
   if (!shortsData || shortsData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-black text-white p-4">
@@ -175,25 +83,15 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
           </Link>
         </Button>
       </div>
-       <div className="absolute top-4 right-4 z-20" onClick={() => setIsMuted(prev => !prev)}>
-         <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
-            {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-          </Button>
-      </div>
-
+      
       <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
-        {shortsData.map((reel, index) => (
+        {shortsData.map((reel) => (
           <div
             key={reel.id}
-            ref={(el) => (reelRefs.current[index] = el)}
-            data-index={index}
             className="h-full w-full snap-start"
           >
             <ReelItem
               reel={reel}
-              isVisible={index === visibleReelIndex}
-              isMuted={isMuted}
-              toggleMute={() => setIsMuted(prev => !prev)}
             />
           </div>
         ))}
