@@ -13,9 +13,8 @@ import YouTube from 'react-youtube';
 import type { YouTubePlayer } from 'react-youtube';
 
 
-function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
+function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisible: boolean; isMuted: boolean; toggleMute: () => void; }) {
   const [player, setPlayer] = useState<YouTubePlayer | null>(null);
-  const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
     // This effect now only handles PAUSING the video when it's no longer visible.
@@ -30,6 +29,18 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
       }, 150);
     }
   }, [isVisible, player]);
+  
+  // This effect synchronizes the player's mute state with the global mute state.
+  useEffect(() => {
+    if (player) {
+      if (isMuted) {
+        player.mute();
+      } else {
+        player.unMute();
+      }
+    }
+  }, [player, isMuted]);
+
 
   const onReady = (event: { target: YouTubePlayer }) => {
     setPlayer(event.target);
@@ -42,17 +53,6 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
     // This is the core fix for the race condition.
     if(isVisible) {
         event.target.playVideo();
-    }
-  };
-  
-  const toggleMute = () => {
-    if (player) {
-      if (isMuted) {
-        player.unMute();
-      } else {
-        player.mute();
-      }
-      setIsMuted(!isMuted);
     }
   };
 
@@ -93,7 +93,7 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
         </div>
         
         {/* Bottom Gradient and Info */}
-        <div className="p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
+        <div className="p-4 flex flex-col justify-end h-full bg-gradient-to-t from-black/60 to-transparent text-white">
           <div className="flex items-end justify-between">
             <div className="max-w-[calc(100%-60px)] flex items-center gap-2">
               <Avatar className="h-10 w-10 border-2 border-white/50">
@@ -124,6 +124,7 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const [visibleReelIndex, setVisibleReelIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
@@ -189,6 +190,8 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             <ReelItem
               reel={reel}
               isVisible={index === visibleReelIndex}
+              isMuted={isMuted}
+              toggleMute={() => setIsMuted(prev => !prev)}
             />
           </div>
         ))}
