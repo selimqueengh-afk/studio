@@ -4,41 +4,43 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 function ReelItem({
   reel,
   isVisible,
+  isPreloading
 }: {
   reel: Reel;
   isVisible: boolean;
+  isPreloading: boolean;
 }) {
-
-  // Only render the iframe if it's visible to prevent background loading and errors.
-  if (!isVisible) {
-    return (
+  const isMobile = useIsMobile();
+  // Construct the URL to enable autoplay and ensure controls are visible.
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=0&controls=${isMobile ? 0 : 1}&modestbranding=1&loop=1&playlist=${reel.id}`;
+  
+  // Render placeholder if not visible or preloading
+  if (!isVisible && !isPreloading) {
+     return (
        <div className="relative h-full w-full flex items-center justify-center bg-black">
-         {/* Placeholder so the snap scrolling still works */}
+         {/* Placeholder for snap scrolling */}
        </div>
     );
   }
-  
-  // Construct the URL to enable autoplay and ensure controls are visible.
-  // allow="autoplay" is crucial for some browsers.
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
        <iframe
-          src={videoSrc}
+          src={isVisible ? videoSrc : ''}
           title={reel.description}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerPolicy="strict-origin-when-cross-origin"
           allowFullScreen
           className="absolute inset-0 w-full h-full"
         ></iframe>
@@ -75,7 +77,9 @@ function ReelItem({
 }
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
-  const [visibleReelId, setVisibleReelId] = useState<string | null>(shortsData.length > 0 ? shortsData[0].id : null);
+  const [visibleReelId, setVisibleReelId] = useState<string | null>(null);
+  const [preloadReelId, setPreloadReelId] = useState<string | null>(null);
+
   const observer = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -83,19 +87,37 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const reelId = entry.target.getAttribute('data-reel-id');
+        const reelIndex = parseInt(entry.target.getAttribute('data-reel-index') || '0', 10);
+        
         setVisibleReelId(reelId);
+
+        // Preload the next video
+        const nextIndex = reelIndex + 1;
+        if (nextIndex < shortsData.length) {
+            setPreloadReelId(shortsData[nextIndex].id);
+        } else {
+            setPreloadReelId(null);
+        }
       }
     });
-  }, []);
+  }, [shortsData]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    // Set the first reel as visible initially without waiting for scroll
+    if (shortsData.length > 0 && !visibleReelId) {
+        setVisibleReelId(shortsData[0].id);
+        if (shortsData.length > 1) {
+            setPreloadReelId(shortsData[1].id);
+        }
+    }
+
     observer.current = new IntersectionObserver(handleIntersection, {
       root: container,
       rootMargin: '0px',
-      threshold: 0.8, 
+      threshold: 0.8, // When 80% of the item is visible
     });
 
     const reelElements = container.querySelectorAll('.reel-container');
@@ -104,7 +126,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     return () => {
       reelElements.forEach(el => observer.current?.unobserve(el));
     };
-  }, [handleIntersection, shortsData]);
+  }, [handleIntersection, shortsData, visibleReelId]);
 
   if (!shortsData || shortsData.length === 0) {
     return (
@@ -131,15 +153,17 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
       </div>
       
       <div ref={containerRef} className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
-        {shortsData.map((reel) => (
+        {shortsData.map((reel, index) => (
           <div
             key={reel.id}
             data-reel-id={reel.id}
+            data-reel-index={index}
             className="reel-container h-full w-full snap-start flex-shrink-0"
           >
             <ReelItem
               reel={reel}
               isVisible={visibleReelId === reel.id}
+              isPreloading={preloadReelId === reel.id}
             />
           </div>
         ))}

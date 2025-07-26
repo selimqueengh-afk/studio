@@ -20,12 +20,16 @@ interface YouTubeVideo {
 
 // Search terms for diverse and interesting content
 const SEARCH_QUERIES = [
-  'GigaChad phonk edit',
-  'Roblox Egor edit',
-  'Roblox tutorial',
-  'sigma rule edit',
-  'funny roblox moments',
-  'minecraft parkour',
+  'satisfying cleaning #shorts',
+  'funny cats #shorts',
+  'life hacks #shorts',
+  '3d animation #shorts',
+  'DIY crafts #shorts',
+  'amazing science experiments #shorts',
+  'parkour highlights #shorts',
+  'minecraft build timelapse #shorts',
+  'asmr #shorts',
+  'daily dose of internet'
 ];
 
 // Function to fetch Shorts videos from YouTube Data API.
@@ -42,9 +46,9 @@ export async function fetchYouTubeShorts(): Promise<Reel[]> {
 
   // Select a random search term each time to increase variety
   const randomQuery = SEARCH_QUERIES[Math.floor(Math.random() * SEARCH_QUERIES.length)];
-  const encodedQuery = encodeURIComponent(`${randomQuery} #shorts`);
+  const encodedQuery = encodeURIComponent(`${randomQuery}`);
 
-  const API_URL = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&videoDuration=short&q=${encodedQuery}&key=${YOUTUBE_API_KEY}`;
+  const API_URL = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&videoDuration=short&q=${encodedQuery}&key=${YOUTUBE_API_KEY}`;
 
   try {
     const response = await fetch(API_URL, {
