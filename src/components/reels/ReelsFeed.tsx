@@ -4,12 +4,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Volume2, VolumeX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
-import YouTube, { type YouTubePlayer } from 'react-youtube';
 
 function ReelItem({
   reel,
@@ -18,46 +17,31 @@ function ReelItem({
   reel: Reel;
   isVisible: boolean;
 }) {
-  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
 
-  const onReady = (event: { target: YouTubePlayer }) => {
-    setPlayer(event.target);
-  };
-
-  useEffect(() => {
-    // Bu useEffect, hem 'isVisible' hem de 'player' hazır olduğunda çalışır.
-    // Bu, zamanlama (race condition) hatalarını engeller.
-    if (!player) {
-      return; // Oynatıcı hazır değilse hiçbir şey yapma
-    }
-
-    if (isVisible) {
-      player.playVideo();
-    } else {
-      player.pauseVideo();
-    }
-  }, [isVisible, player]);
-
-  const opts = {
-    height: '100%',
-    width: '100%',
-    playerVars: {
-      autoplay: 1, // Otomatik oynatmayı dene
-      controls: 1, // Kontrolleri göster
-      modestbranding: 1,
-      loop: 1,
-      playlist: reel.id, // Döngü için video ID'si
-    },
-  };
+  // Only render the iframe if it's visible to prevent background loading and errors.
+  if (!isVisible) {
+    return (
+       <div className="relative h-full w-full flex items-center justify-center bg-black">
+         {/* Placeholder so the snap scrolling still works */}
+       </div>
+    );
+  }
+  
+  // Construct the URL to enable autoplay and ensure controls are visible.
+  // allow="autoplay" is crucial for some browsers.
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      <YouTube
-        videoId={reel.id}
-        opts={opts}
-        onReady={onReady}
-        className="absolute inset-0 w-full h-full"
-      />
+       <iframe
+          src={videoSrc}
+          title={reel.description}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
+          className="absolute inset-0 w-full h-full"
+        ></iframe>
 
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
         <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
@@ -109,9 +93,9 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     if (!container) return;
 
     observer.current = new IntersectionObserver(handleIntersection, {
-      root: container, // Gözlemci için kök eleman olarak kaydırılabilir container'ı kullan
+      root: container,
       rootMargin: '0px',
-      threshold: 0.8, // Videonun %80'i göründüğünde tetikle
+      threshold: 0.8, 
     });
 
     const reelElements = container.querySelectorAll('.reel-container');
