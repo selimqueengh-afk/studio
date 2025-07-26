@@ -13,32 +13,33 @@ export interface Reel {
     };
 }
 
-// A list of Instagram post URLs to fetch
-const postUrls = [
-    'https://www.instagram.com/p/C8_A388R5Fb/',
-    'https://www.instagram.com/p/C89Af6FRaQ3/',
-    'https://www.instagram.com/p/C8y4J5sxbJ8/',
-    'https://www.instagram.com/p/C8s5XoayQoq/',
-    'https://www.instagram.com/p/C8xL_9vSy2C/'
+// A static list of Instagram Reel URLs to fetch
+const reelUrls = [
+    'https://www.instagram.com/reel/C8_A388R5Fb/',
+    'https://www.instagram.com/reel/C89Af6FRaQ3/',
+    'https://www.instagram.com/reel/C8y4J5sxbJ8/',
+    'https://www.instagram.com/reel/C8s5XoayQoq/',
+    'https://www.instagram.com/reel/C8xL_9vSy2C/'
 ];
 
-
-// This function maps the API response for a single post to our Reel interface.
-const mapApiResponse = (apiResponse: any): Reel | null => {
+// This function maps the API response for a single reel to our Reel interface.
+const mapApiResponse = (apiResponse: any, postUrl: string): Reel | null => {
     // The actual data seems to be nested under a 'data' property
-    const post = apiResponse?.data;
-    if (!post || !post.id || !post.video_url) {
+    if (!apiResponse || !apiResponse.media) {
         // If the post is not a video or data is missing, skip it.
         return null;
     }
 
+    // Generate a unique ID from the post URL
+    const id = postUrl.split('/')[4] || new Date().getTime().toString();
+    
     return {
-        id: post.id,
-        description: post.caption || 'No description',
-        videoUrl: post.video_url, // Direct video URL from the API response
+        id: id,
+        description: apiResponse.title || 'No description',
+        videoUrl: apiResponse.media, // Direct video URL from the API response
         author: {
-            nickname: post.owner?.username || 'unknown_user',
-            avatar: post.owner?.profile_pic_url || 'https://placehold.co/100x100.png',
+            nickname: 'Instagram User', // This API doesn't provide author details
+            avatar: apiResponse.thumbnail || 'https://placehold.co/100x100.png',
         },
     };
 };
@@ -54,28 +55,31 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         method: 'GET',
         headers: {
             'x-rapidapi-key': apiKey,
-            'x-rapidapi-host': 'instagram-statistics-api.p.rapidapi.com'
+            'x-rapidapi-host': 'instagram-reels-downloader-api.p.rapidapi.com'
         }
     };
 
     try {
-        const promises = postUrls.map(postUrl => {
-            const url = `https://instagram-statistics-api.p.rapidapi.com/posts/one?postUrl=${encodeURIComponent(postUrl)}`;
-            return fetch(url, options).then(res => {
+        const promises = reelUrls.map(postUrl => {
+            const url = `https://instagram-reels-downloader-api.p.rapidapi.com/download?url=${encodeURIComponent(postUrl)}`;
+            return fetch(url, options).then(async res => {
                 if (!res.ok) {
                     // Log error but don't throw, so other requests can succeed
-                    console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`);
+                    const errorText = await res.text();
+                    console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`, errorText);
                     return null;
                 }
-                return res.json();
+                const json = await res.json();
+                return mapApiResponse(json, postUrl);
+            }).catch(error => {
+                console.error(`Fetch failed for ${postUrl}:`, error);
+                return null;
             });
         });
 
         const results = await Promise.all(promises);
         
-        const reels = results
-            .map(result => result ? mapApiResponse(result) : null)
-            .filter((reel): reel is Reel => reel !== null); // Filter out any null values
+        const reels = results.filter((reel): reel is Reel => reel !== null); // Filter out any null values
 
         return reels;
 
@@ -84,4 +88,3 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         return []; // Return an empty array on catastrophic error
     }
 };
-
