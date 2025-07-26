@@ -3,48 +3,63 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import YouTube from 'react-youtube';
+import type { YouTubePlayer } from 'react-youtube';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
-import { useIsMobile } from '@/hooks/use-mobile';
-
 
 function ReelItem({
   reel,
   isVisible,
-  isPreloading
 }: {
   reel: Reel;
   isVisible: boolean;
-  isPreloading: boolean;
 }) {
-  const isMobile = useIsMobile();
-  // Construct the URL to enable autoplay and ensure controls are visible.
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=1&controls=${isMobile ? 0 : 1}&modestbranding=1&loop=1&playlist=${reel.id}`;
+  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
+
+  const onReady = (event: { target: YouTubePlayer }) => {
+    setPlayer(event.target);
+  };
   
-  // Render placeholder if not visible or preloading
-  if (!isVisible && !isPreloading) {
-     return (
-       <div className="relative h-full w-full flex items-center justify-center bg-black">
-         {/* Placeholder for snap scrolling */}
-       </div>
-    );
-  }
+  useEffect(() => {
+    // Player hazır değilse hiçbir şey yapma. Bu, hataları önler.
+    if (!player) {
+      return;
+    }
+
+    if (isVisible) {
+      player.setVolume(50); // Sesi %50 yap
+      player.playVideo();
+    } else {
+      player.pauseVideo();
+    }
+  }, [isVisible, player]);
+
+  const opts = {
+    height: '100%',
+    width: '100%',
+    playerVars: {
+      autoplay: 0, // Oynatmayı useEffect ile kontrol edeceğiz
+      controls: 1,
+      modestbranding: 1,
+      loop: 1,
+      playlist: reel.id, // for looping
+    },
+  };
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-       <iframe
-          src={videoSrc}
-          title={reel.description}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full"
-        ></iframe>
-
+      <YouTube
+        videoId={reel.id}
+        opts={opts}
+        onReady={onReady}
+        className="absolute inset-0 w-full h-full"
+        iframeClassName="w-full h-full"
+      />
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
         <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
         </div>
@@ -78,8 +93,6 @@ function ReelItem({
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const [visibleReelId, setVisibleReelId] = useState<string | null>(null);
-  const [preloadReelId, setPreloadReelId] = useState<string | null>(null);
-
   const observer = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -87,37 +100,23 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const reelId = entry.target.getAttribute('data-reel-id');
-        const reelIndex = parseInt(entry.target.getAttribute('data-reel-index') || '0', 10);
-        
         setVisibleReelId(reelId);
-
-        // Preload the next video
-        const nextIndex = reelIndex + 1;
-        if (nextIndex < shortsData.length) {
-            setPreloadReelId(shortsData[nextIndex].id);
-        } else {
-            setPreloadReelId(null);
-        }
       }
     });
-  }, [shortsData]);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Set the first reel as visible initially without waiting for scroll
     if (shortsData.length > 0 && !visibleReelId) {
         setVisibleReelId(shortsData[0].id);
-        if (shortsData.length > 1) {
-            setPreloadReelId(shortsData[1].id);
-        }
     }
 
     observer.current = new IntersectionObserver(handleIntersection, {
       root: container,
       rootMargin: '0px',
-      threshold: 0.8, // When 80% of the item is visible
+      threshold: 0.8,
     });
 
     const reelElements = container.querySelectorAll('.reel-container');
@@ -163,7 +162,6 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             <ReelItem
               reel={reel}
               isVisible={visibleReelId === reel.id}
-              isPreloading={preloadReelId === reel.id}
             />
           </div>
         ))}
