@@ -3,7 +3,9 @@
 
 import { type Reel } from './reels';
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+// IMPORTANT: The API key is temporarily hardcoded to resolve the ".env.local" loading issue.
+// For production, it's highly recommended to use environment variables.
+const YOUTUBE_API_KEY = 'AIzaSyC07W2GblkDf1aL9S2pSF4UVFQrSbliphY';
 
 interface YouTubeVideo {
   id: { videoId: string };
@@ -16,7 +18,7 @@ interface YouTubeVideo {
   };
 }
 
-// Çeşitli ve ilginç içerikler için arama terimleri
+// Search terms for diverse and interesting content
 const SEARCH_QUERIES = [
   'GigaChad phonk edit',
   'Roblox Egor edit',
@@ -26,19 +28,19 @@ const SEARCH_QUERIES = [
   'minecraft parkour',
 ];
 
-// YouTube Data API'sinden Shorts videolarını çeken fonksiyon.
-// API kotasını korumak için, bu fonksiyonun çağrıldığı yerde
-// revalidate (önbellekleme) kullanılması şiddetle tavsiye edilir.
+// Function to fetch Shorts videos from YouTube Data API.
+// To conserve API quota, it's highly recommended to use
+// revalidation (caching) where this function is called.
 export async function fetchYouTubeShorts(): Promise<Reel[]> {
   if (!YOUTUBE_API_KEY) {
     console.error(
       'YouTube API anahtarı (.env.local dosyasında YOUTUBE_API_KEY) bulunamadı.'
     );
-    // API anahtarı yoksa boş bir dizi döndürerek uygulamanın çökmesini engelle.
+    // Prevent app crash if API key is missing by returning an empty array.
     return [];
   }
 
-  // Her seferinde farklı bir arama terimi seçerek çeşitliliği artır
+  // Select a random search term each time to increase variety
   const randomQuery = SEARCH_QUERIES[Math.floor(Math.random() * SEARCH_QUERIES.length)];
   const encodedQuery = encodeURIComponent(`${randomQuery} #shorts`);
 
@@ -46,8 +48,8 @@ export async function fetchYouTubeShorts(): Promise<Reel[]> {
 
   try {
     const response = await fetch(API_URL, {
-      // Next.js App Router'da saatlik önbellekleme.
-      // Bu, API kotasının çok verimli kullanılmasını sağlar.
+      // Hourly caching in Next.js App Router.
+      // This makes API quota usage very efficient.
       next: { revalidate: 3600 },
     });
 
@@ -61,7 +63,7 @@ export async function fetchYouTubeShorts(): Promise<Reel[]> {
 
     const reels: Reel[] = data.items
       .map((item: YouTubeVideo) => {
-        // Bazen videoId gelmeyebilir, bunları filtrele
+        // Sometimes videoId might be missing, filter those out
         if (!item.id.videoId) {
           return null;
         }
@@ -75,12 +77,13 @@ export async function fetchYouTubeShorts(): Promise<Reel[]> {
           },
         };
       })
-      .filter((reel: Reel | null): reel is Reel => reel !== null); // null olanları temizle
+      .filter((reel: Reel | null): reel is Reel => reel !== null); // Clean up null entries
 
     return reels;
   } catch (error) {
     console.error('Failed to fetch from YouTube API:', error);
-    // Hata durumunda boş dizi döndürerek uygulamanın çalışmaya devam etmesini sağla.
+    // Return an empty array in case of an error to allow the app to continue running.
     return [];
   }
 }
+
