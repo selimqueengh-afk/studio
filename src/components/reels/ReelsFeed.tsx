@@ -19,18 +19,20 @@ function ReelItem({
 }) {
   // Only set the iframe src if the reel is visible to play it.
   // When it's not visible, the src is empty, which stops the video.
-  const videoSrc = isVisible ? `${reel.videoUrl}?autoplay=1&mute=0&controls=0&loop=1&playlist=${reel.id}` : '';
+  const videoSrc = `${reel.videoUrl}?autoplay=1&mute=0&controls=0&loop=1&playlist=${reel.id}`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      <iframe
-        src={videoSrc}
-        title={reel.description}
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        className="w-full h-full absolute inset-0"
-      ></iframe>
+      {isVisible && (
+        <iframe
+          src={videoSrc}
+          title={reel.description}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full absolute inset-0"
+        ></iframe>
+      )}
 
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
         {/* Top Gradient */}
