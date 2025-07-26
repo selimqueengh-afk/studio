@@ -1,4 +1,3 @@
-
 'use server';
 
 import { type Reel } from './reels';
@@ -86,4 +85,3 @@ export async function fetchYouTubeShorts(): Promise<Reel[]> {
     return [];
   }
 }
-
