@@ -13,7 +13,7 @@ export interface Reel {
     };
 }
 
-// The API seems to require full TikTok post URLs.
+// A list of TikTok post URLs to fetch.
 const TIKTOK_VIDEO_URLS = [
     'https://www.tiktok.com/@tiktok/video/7391753673432321326',
     'https://www.tiktok.com/@tiktok/video/7388739172085730606',
@@ -25,42 +25,16 @@ const TIKTOK_VIDEO_URLS = [
 interface ScraperApiResponse {
     code: number;
     msg: string;
-    processed_time: number;
-    data: {
+    data?: {
         id: string;
-        region: string;
         title: string;
-        cover: string;
-        origin_cover: string;
-        duration: number;
-        play: string; // This should be the video URL
-        wm_play: string;
-        hd_play: string;
-        music: string;
-        music_info: {
-            id: string;
-            title: string;
-            play: string;
-            cover: string;
-            author: string;
-            original: boolean;
-            duration: number;
-            album: string;
-        };
-        play_count: number;
-        digg_count: number;
-        comment_count: number;
-        share_count: number;
-        download_count: number;
-        create_time: number;
+        play: string;
+        hdplay: string;
         author: {
-            id: string;
-            unique_id: string; // nickname
             nickname: string;
-            avatar: string; // avatar
+            avatar: string;
         };
-        images?: string[];
-    }
+    };
 }
 
 
@@ -73,9 +47,9 @@ const mapApiResponse = (response: ScraperApiResponse): Reel | null => {
         id: data.id,
         description: data.title,
         // Use the no-watermark video if available, otherwise fallback to the standard play URL
-        videoUrl: data.hd_play || data.play,
+        videoUrl: data.hdplay || data.play,
         author: {
-            nickname: data.author.unique_id || data.author.nickname,
+            nickname: data.author.nickname,
             avatar: data.author.avatar,
         },
     };
@@ -92,7 +66,7 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
 
     const fetchedReels: Reel[] = [];
 
-    // Use a for...of loop to send requests sequentially and avoid rate limiting.
+    // Use a for...of loop to send requests sequentially to avoid rate limiting.
     for (const postUrl of TIKTOK_VIDEO_URLS) {
         try {
             const url = `https://${host}/?url=${encodeURIComponent(postUrl)}&hd=1`;
@@ -109,6 +83,7 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
             const res = await fetch(url, options);
 
             if (!res.ok) {
+                 // Log error but don't throw, so other requests can succeed
                  const errorText = await res.text();
                  console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`, errorText);
                  continue; // Skip to the next video
@@ -124,10 +99,6 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
             console.error(`Failed to fetch reel for ${postUrl}:`, error);
         }
     }
-
-    if (fetchedReels.length === 0) {
-        console.warn('The fetched reels list is empty.');
-    }
-
+    
     return fetchedReels;
 };
