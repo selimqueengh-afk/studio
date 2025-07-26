@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -16,38 +15,41 @@ import type { YouTubePlayer } from 'react-youtube';
 function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisible: boolean; isMuted: boolean; toggleMute: () => void; }) {
   const [player, setPlayer] = useState<YouTubePlayer | null>(null);
 
+  // This useEffect handles playing and pausing based on visibility
   useEffect(() => {
-    // Play or pause the video only when isVisible changes and player is ready
-    if (!player) return;
+    if (!player) return; // Guard clause: Don't do anything if the player isn't ready
 
     if (isVisible) {
       player.playVideo();
     } else {
       player.pauseVideo();
     }
-  }, [isVisible, player]);
+  }, [isVisible, player]); // Dependency on player ensures it re-runs when player is ready
   
+  // This useEffect handles mute state changes
   useEffect(() => {
-    // Control mute state only when isMuted changes and player is ready
-    if (!player) return;
+    if (!player) return; // Guard clause: Don't do anything if the player isn't ready
 
     if (isMuted) {
       player.mute();
     } else {
       player.unMute();
     }
-  }, [isMuted, player]);
+  }, [isMuted, player]); // Dependency on player ensures it re-runs when player is ready
 
 
   const onReady = (event: { target: YouTubePlayer }) => {
     const newPlayer = event.target;
     setPlayer(newPlayer);
-    // Sync mute state and play video when player is ready and visible
+    
+    // Sync initial state when player is ready
     if (isMuted) {
         newPlayer.mute();
     } else {
         newPlayer.unMute();
     }
+    
+    // If the video is already visible when the player becomes ready, play it.
     if (isVisible) {
         newPlayer.playVideo();
     }
@@ -57,19 +59,18 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
     height: '100%',
     width: '100%',
     playerVars: {
-      autoplay: 0, // We control autoplay manually via onReady and isVisible
+      autoplay: 0, // We control autoplay manually
       controls: 0,
       modestbranding: 1,
       loop: 1,
       playlist: reel.id, // Required for loop
       playsinline: 1,
-      mute: 1, // Start muted, we will unmute if necessary
+      mute: 1, // Start muted, we will unmute if necessary via state
     },
   };
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      {/* The YouTube component is only mounted when it becomes visible, saving resources */}
       <YouTube
           videoId={reel.id}
           opts={opts}
@@ -82,7 +83,7 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
             {/* Header content can go here if needed */}
         </div>
         
-        {/* Mute Icon */}
+        {/* Mute Icon on hover */}
          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
             {isMuted ? <VolumeX className="h-12 w-12 text-white/50" /> : <Volume2 className="h-12 w-12 text-white/50" />}
         </div>
@@ -100,7 +101,7 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
                 <p className="text-sm line-clamp-2">{reel.description}</p>
               </div>
             </div>
-             {/* We use stopPropagation to prevent the mute toggle when clicking the share button */}
+            {/* We use stopPropagation to prevent the mute toggle when clicking the share button */}
             <div onClick={(e) => e.stopPropagation()}>
                 <ShareReelSheet reel={reel}>
                     <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
@@ -148,7 +149,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
         if (ref) observer.unobserve(ref);
       });
     };
-  }, [shortsData]); // Removed reelRefs from dependency array to prevent re-observation on re-renders
+  }, [shortsData]);
 
   if (!shortsData || shortsData.length === 0) {
     return (
