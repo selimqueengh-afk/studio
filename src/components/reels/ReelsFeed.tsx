@@ -16,9 +16,9 @@ import type { YouTubePlayer } from 'react-youtube';
 function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisible: boolean; isMuted: boolean; toggleMute: () => void; }) {
   const [player, setPlayer] = useState<YouTubePlayer | null>(null);
 
+  // This effect now only handles PAUSING the video when it's no longer visible.
+  // Playing is handled by the onReady event to prevent race conditions.
   useEffect(() => {
-    // This effect now only handles PAUSING the video when it's no longer visible.
-    // Playing is handled by the onReady event to prevent race conditions.
     if (!isVisible && player) {
       // Small delay to prevent abrupt pause when scrolling
       setTimeout(() => {
@@ -89,7 +89,7 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
 
         {/* Mute Icon */}
          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-            {isMuted && <VolumeX className="h-12 w-12 text-white/50" />}
+            {isMuted ? <VolumeX className="h-12 w-12 text-white/50" /> : <Volume2 className="h-12 w-12 text-white/50" />}
         </div>
         
         {/* Bottom Gradient and Info */}
@@ -177,6 +177,11 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             <ArrowLeft className="h-6 w-6" />
           </Link>
         </Button>
+      </div>
+       <div className="absolute top-4 right-4 z-20" onClick={() => setIsMuted(prev => !prev)}>
+         <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+            {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+          </Button>
       </div>
 
       <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
