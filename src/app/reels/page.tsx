@@ -1,6 +1,4 @@
 
-"use client";
-
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -11,6 +9,8 @@ import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel, fetchYouTubeShorts } from '@/lib/youtube';
 import YouTube from 'react-youtube';
 import type { YouTubePlayer } from 'react-youtube';
+
+"use client";
 
 function ReelItem({ reel, isVisible, player, setPlayer }: { reel: Reel; isVisible: boolean; player: YouTubePlayer | null; setPlayer: (player: YouTubePlayer | null) => void; }) {
   const [isMuted, setIsMuted] = useState(true);
