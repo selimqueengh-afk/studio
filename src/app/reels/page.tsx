@@ -12,11 +12,12 @@ import { Loader2 } from 'lucide-react';
 async function ReelsFeed() {
     const feed = await fetchTiktokFeed();
 
+    // With the static list, this check is less likely to fail, but kept for robustness.
     if (!feed || feed.length === 0) {
         return (
             <div className="flex h-screen w-full flex-col items-center justify-center text-white bg-black p-4 text-center">
-                <p className="text-lg font-semibold">Videolar yüklenemedi veya akış boş.</p>
-                <p className="text-sm text-white/70 mt-2">Lütfen daha sonra tekrar deneyin veya API yapılandırmanızı kontrol edin.</p>
+                <p className="text-lg font-semibold">Şu anda gösterilecek video bulunmuyor.</p>
+                <p className="text-sm text-white/70 mt-2">Lütfen daha sonra tekrar kontrol edin.</p>
             </div>
         );
     }
