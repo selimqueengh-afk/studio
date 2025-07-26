@@ -15,26 +15,29 @@ export interface Reel {
 
 // A list of TikTok post URLs to fetch.
 const TIKTOK_VIDEO_URLS = [
-    'https://www.tiktok.com/@tiktok/video/7391753673432321326',
-    'https://www.tiktok.com/@tiktok/video/7388739172085730606',
     'https://www.tiktok.com/@google/video/7355135759942405419',
     'https://www.tiktok.com/@nasa/video/7388755953331899691',
     'https://www.tiktok.com/@espn/video/7392815777329237291',
+    'https://www.tiktok.com/@tiktok/video/7391753673432321326',
+    'https://www.tiktok.com/@tiktok/video/7388739172085730606',
 ];
+
+
+interface ScraperApiData {
+    id: string;
+    title: string;
+    play: string;
+    hdplay: string;
+    author: {
+        nickname: string;
+        avatar: string;
+    };
+}
 
 interface ScraperApiResponse {
     code: number;
     msg: string;
-    data?: {
-        id: string;
-        title: string;
-        play: string;
-        hdplay: string;
-        author: {
-            nickname: string;
-            avatar: string;
-        };
-    };
+    data?: ScraperApiData;
 }
 
 
@@ -46,7 +49,7 @@ const mapApiResponse = (response: ScraperApiResponse): Reel | null => {
     return {
         id: data.id,
         description: data.title,
-        // Use the no-watermark video if available, otherwise fallback to the standard play URL
+        // Use the hd no-watermark video if available, otherwise fallback to the standard play URL
         videoUrl: data.hdplay || data.play,
         author: {
             nickname: data.author.nickname,
@@ -63,7 +66,7 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
         console.error('RapidAPI host or key is not set in environment variables.');
         return [];
     }
-
+    
     const fetchedReels: Reel[] = [];
 
     // Use a for...of loop to send requests sequentially to avoid rate limiting.
@@ -76,14 +79,12 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
                     'x-rapidapi-key': key,
                     'x-rapidapi-host': host,
                 },
-                 // Increase timeout as these scraper APIs can be slow
                 next: { revalidate: 60 * 60 } // Cache for 1 hour
             };
 
             const res = await fetch(url, options);
 
             if (!res.ok) {
-                 // Log error but don't throw, so other requests can succeed
                  const errorText = await res.text();
                  console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`, errorText);
                  continue; // Skip to the next video
@@ -91,7 +92,7 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
 
             const json: ScraperApiResponse = await res.json();
             const reel = mapApiResponse(json);
-
+            
             if (reel) {
                 fetchedReels.push(reel);
             }
