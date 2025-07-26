@@ -17,22 +17,22 @@ function ReelItem({
   reel: Reel;
   isVisible: boolean;
 }) {
-  // Only set the iframe src if the reel is visible to play it.
-  // When it's not visible, the src is empty, which stops the video.
   const videoSrc = `${reel.videoUrl}?autoplay=1&mute=0&controls=0&loop=1&playlist=${reel.id}`;
+
+  if (!isVisible) {
+    return null; // Don't render the iframe if it's not visible to prevent background loading/playing
+  }
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      {isVisible && (
-        <iframe
-          src={videoSrc}
-          title={reel.description}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="w-full h-full absolute inset-0"
-        ></iframe>
-      )}
+      <iframe
+        src={videoSrc}
+        title={reel.description}
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        className="w-full h-full absolute inset-0"
+      ></iframe>
 
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
         {/* Top Gradient */}
@@ -56,7 +56,7 @@ function ReelItem({
             </div>
 
             {/* Right side: Action Buttons */}
-            <div className="flex flex-col items-center gap-4 pointer-events-auto">
+            <div className="flex flex-col items-center gap-4 pointer-events-auto mb-4">
               <ShareReelSheet reel={reel}>
                 <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-12 w-12">
                   <Send className="h-7 w-7" />
