@@ -58,29 +58,35 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
             'x-rapidapi-host': 'instagram-reels-downloader-api.p.rapidapi.com'
         }
     };
+    
+    const reels: Reel[] = [];
 
     try {
-        const promises = reelUrls.map(postUrl => {
+        for (const postUrl of reelUrls) {
             const url = `https://instagram-reels-downloader-api.p.rapidapi.com/download?url=${encodeURIComponent(postUrl)}`;
-            return fetch(url, options).then(async res => {
+            
+            try {
+                const res = await fetch(url, options);
+
                 if (!res.ok) {
                     // Log error but don't throw, so other requests can succeed
                     const errorText = await res.text();
                     console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`, errorText);
-                    return null;
+                    continue; // Continue to the next iteration
                 }
+
                 const json = await res.json();
-                return mapApiResponse(json, postUrl);
-            }).catch(error => {
+                const reel = mapApiResponse(json, postUrl);
+                if (reel) {
+                    reels.push(reel);
+                }
+
+            } catch (error) {
                 console.error(`Fetch failed for ${postUrl}:`, error);
-                return null;
-            });
-        });
-
-        const results = await Promise.all(promises);
+                continue; // Continue to the next iteration
+            }
+        }
         
-        const reels = results.filter((reel): reel is Reel => reel !== null); // Filter out any null values
-
         return reels;
 
     } catch (error) {
