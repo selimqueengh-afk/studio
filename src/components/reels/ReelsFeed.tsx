@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Send } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
+import YouTube, { type YouTubePlayer } from 'react-youtube';
 
 function ReelItem({
   reel,
@@ -17,33 +18,52 @@ function ReelItem({
   reel: Reel;
   isVisible: boolean;
 }) {
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&loop=1&playlist=${reel.id}&controls=0`;
+  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
 
-  if (!isVisible) {
-    return <div className="h-full w-full bg-black" />;
-  }
+  const onReady = (event: { target: YouTubePlayer }) => {
+    setPlayer(event.target);
+  };
+
+  useEffect(() => {
+    // Bu useEffect, hem 'isVisible' hem de 'player' hazır olduğunda çalışır.
+    // Bu, zamanlama (race condition) hatalarını engeller.
+    if (!player) {
+      return; // Oynatıcı hazır değilse hiçbir şey yapma
+    }
+
+    if (isVisible) {
+      player.playVideo();
+    } else {
+      player.pauseVideo();
+    }
+  }, [isVisible, player]);
+
+  const opts = {
+    height: '100%',
+    width: '100%',
+    playerVars: {
+      autoplay: 1, // Otomatik oynatmayı dene
+      controls: 1, // Kontrolleri göster
+      modestbranding: 1,
+      loop: 1,
+      playlist: reel.id, // Döngü için video ID'si
+    },
+  };
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-       <iframe
-          src={videoSrc}
-          title={reel.description}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="w-full h-full absolute inset-0"
-        ></iframe>
+      <YouTube
+        videoId={reel.id}
+        opts={opts}
+        onReady={onReady}
+        className="absolute inset-0 w-full h-full"
+      />
 
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
-        {/* Top Gradient */}
         <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
-          {/* You can add top-aligned elements here if needed */}
         </div>
-
-        {/* Bottom UI */}
         <div className="p-4 flex flex-col justify-end h-full bg-gradient-to-t from-black/60 to-transparent text-white">
           <div className="flex items-end">
-            {/* Left side: Author Info */}
             <div className="flex-1 max-w-[calc(100%-60px)] flex items-center gap-2">
               <Avatar className="h-10 w-10 border-2 border-white/50">
                 <AvatarImage src={reel.author.avatar} />
@@ -55,7 +75,6 @@ function ReelItem({
               </div>
             </div>
 
-            {/* Right side: Action Buttons */}
             <div className="flex flex-col items-center gap-4 pointer-events-auto mb-4">
               <ShareReelSheet reel={reel}>
                 <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-12 w-12">
@@ -74,6 +93,7 @@ function ReelItem({
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const [visibleReelId, setVisibleReelId] = useState<string | null>(shortsData.length > 0 ? shortsData[0].id : null);
   const observer = useRef<IntersectionObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
     entries.forEach(entry => {
@@ -85,13 +105,16 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   }, []);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
     observer.current = new IntersectionObserver(handleIntersection, {
-      root: null,
+      root: container, // Gözlemci için kök eleman olarak kaydırılabilir container'ı kullan
       rootMargin: '0px',
-      threshold: 0.8,
+      threshold: 0.8, // Videonun %80'i göründüğünde tetikle
     });
 
-    const reelElements = document.querySelectorAll('.reel-container');
+    const reelElements = container.querySelectorAll('.reel-container');
     reelElements.forEach(el => observer.current?.observe(el));
 
     return () => {
@@ -114,7 +137,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   }
 
   return (
-    <div className="relative h-screen w-full bg-black snap-y snap-mandatory overflow-y-scroll">
+    <div className="relative h-screen w-full bg-black">
       <div className="absolute top-4 left-4 z-20">
         <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
           <Link href="/chat">
@@ -122,19 +145,21 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
           </Link>
         </Button>
       </div>
-
-      {shortsData.map((reel) => (
-        <div
-          key={reel.id}
-          data-reel-id={reel.id}
-          className="reel-container h-full w-full snap-start"
-        >
-          <ReelItem
-            reel={reel}
-            isVisible={visibleReelId === reel.id}
-          />
-        </div>
-      ))}
+      
+      <div ref={containerRef} className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
+        {shortsData.map((reel) => (
+          <div
+            key={reel.id}
+            data-reel-id={reel.id}
+            className="reel-container h-full w-full snap-start flex-shrink-0"
+          >
+            <ReelItem
+              reel={reel}
+              isVisible={visibleReelId === reel.id}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
