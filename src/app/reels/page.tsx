@@ -2,7 +2,7 @@
 import { fetchTiktokFeed } from '@/lib/tiktok';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, VideoOff } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
@@ -12,12 +12,19 @@ import { Loader2 } from 'lucide-react';
 async function ReelsFeed() {
     const feed = await fetchTiktokFeed();
 
-    // The error message is removed because we now use a reliable static list.
-    // The feed should always load correctly.
     if (!feed || feed.length === 0) {
         return (
             <div className="flex h-screen w-full flex-col items-center justify-center text-white bg-black p-4 text-center">
-                <p className="text-lg font-semibold">Videolar hazırlanıyor...</p>
+                <VideoOff className="h-16 w-16 mb-4 text-muted-foreground" />
+                <h2 className="text-xl font-bold">Videolar Yüklenemedi</h2>
+                <p className="text-muted-foreground max-w-sm mt-2">
+                    Videoları getirmeye çalışırken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.
+                </p>
+                 <Button asChild variant="secondary" className="mt-6">
+                    <Link href="/chat">
+                        Sohbete Geri Dön
+                    </Link>
+                </Button>
             </div>
         );
     }
