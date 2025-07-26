@@ -12,10 +12,12 @@ import { Loader2 } from 'lucide-react';
 async function ReelsFeed() {
     const feed = await fetchTiktokFeed();
 
+    // Since we now use a reliable static list, this check is less critical,
+    // but good practice to keep for future API integrations.
     if (!feed || feed.length === 0) {
         return (
             <div className="flex h-screen w-full items-center justify-center text-white bg-black">
-                <p>Videolar yüklenemedi veya akış boş.</p>
+                <p>Videolar şuan mevcut değil.</p>
             </div>
         );
     }
@@ -54,12 +56,11 @@ async function ReelsFeed() {
                                      <p className="text-sm line-clamp-2">{reel.description}</p>
                                     </div>
                                 </div>
-                                {/* ShareReelSheet'i reel prop'u ile kullanacağız */}
-                                {/* <ShareReelSheet reel={reel}>
+                                <ShareReelSheet reel={reel}>
                                     <Button variant="ghost" size="icon">
                                         <Send className="h-6 w-6" />
                                     </Button>
-                                </ShareReelSheet> */}
+                                </ShareReelSheet>
                             </div>
                         </div>
                     </section>

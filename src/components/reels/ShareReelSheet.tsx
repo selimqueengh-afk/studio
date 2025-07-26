@@ -1,11 +1,18 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { collection, onSnapshot, query, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { 
+    Sheet, 
+    SheetContent, 
+    SheetHeader, 
+    SheetTitle, 
+    SheetDescription,
+    SheetTrigger
+} from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -25,12 +32,12 @@ interface Friend {
 
 interface ShareReelSheetProps {
     reel: Reel;
-    isOpen: boolean;
-    onOpenChange: (isOpen: boolean) => void;
+    children: ReactNode; // To trigger the sheet
 }
 
-export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReelSheetProps) {
+export default function ShareReelSheet({ reel, children }: ShareReelSheetProps) {
     const { user } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loadingFriends, setLoadingFriends] = useState(true);
     const [sending, setSending] = useState<string | null>(null);
@@ -83,7 +90,7 @@ export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReel
                 title: 'Gönderildi!',
                 description: `${friend.displayName} adlı kullanıcıya video gönderildi.`,
             });
-            onOpenChange(false);
+            setIsOpen(false);
 
         } catch (error) {
             console.error("Error sharing reel: ", error);
@@ -99,7 +106,8 @@ export default function ShareReelSheet({ reel, isOpen, onOpenChange }: ShareReel
 
 
     return (
-        <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>{children}</SheetTrigger>
             <SheetContent>
                 <SheetHeader>
                     <SheetTitle>Bir arkadaşınla paylaş</SheetTitle>
