@@ -7,7 +7,8 @@ import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
 
-// A list of YouTube Short IDs and their metadata.
+// API kullanmadan, statik olarak tanımlanmış YouTube Shorts verileri.
+// Bu yaklaşım SIFIR API kotası harcar.
 const shortsData: Reel[] = [
   {
     id: 'ctQQ8z7nd0k',
