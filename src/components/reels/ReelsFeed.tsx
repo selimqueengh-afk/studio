@@ -1,14 +1,15 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Volume2, VolumeX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
+import { cn } from '@/lib/utils';
 
 function ReelItem({
   reel,
@@ -17,10 +18,12 @@ function ReelItem({
   reel: Reel;
   isVisible: boolean;
 }) {
-  const videoSrc = `${reel.videoUrl}?autoplay=1&mute=0&controls=0&loop=1&playlist=${reel.id}`;
+  // Add mute=1 to ensure autoplay works on most browsers.
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${reel.id}`;
 
+  // Don't render iframe if not visible to save resources and prevent background playback
   if (!isVisible) {
-    return null; // Don't render the iframe if it's not visible to prevent background loading/playing
+    return null;
   }
 
   return (
@@ -85,17 +88,15 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   }, []);
 
   useEffect(() => {
-    // Set up the observer
     observer.current = new IntersectionObserver(handleIntersection, {
-      root: null, // observes intersections relative to the viewport
+      root: null,
       rootMargin: '0px',
-      threshold: 0.8, // 80% of the item must be visible
+      threshold: 0.8,
     });
 
     const reelElements = document.querySelectorAll('.reel-container');
     reelElements.forEach(el => observer.current?.observe(el));
 
-    // Cleanup observer on component unmount
     return () => {
       reelElements.forEach(el => observer.current?.unobserve(el));
     };
@@ -116,7 +117,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   }
 
   return (
-    <div className="relative h-screen w-full bg-black overflow-hidden group">
+    <div className="relative h-screen w-full bg-black group">
       <div className="absolute top-4 left-4 z-20">
         <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
           <Link href="/chat">
