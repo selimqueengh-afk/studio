@@ -19,7 +19,7 @@ async function ReelsFeed() {
         <div className="flex flex-col items-center justify-center h-screen bg-black text-white p-4">
             <h2 className="text-2xl font-bold mb-4">Videolar Yüklenemedi</h2>
             <p className="text-center text-muted-foreground mb-6">
-                YouTube API'sinden videolar çekilemedi. Lütfen API anahtarınızın doğru olduğundan ve kotanızın dolmadığından emin olun.
+                Videolar çekilemedi. Lütfen daha sonra tekrar deneyin.
             </p>
             <Button asChild variant="secondary">
                 <Link href="/chat">Sohbete Geri Dön</Link>
@@ -45,8 +45,8 @@ async function ReelsFeed() {
           // loop=1 -> döngüye al
           // playlist=${reel.id} -> döngü için gerekli
           // controls=0 -> oynatıcı kontrollerini gizle
-          // mute=1 -> sesi kapat (tarayıcıların otomatik oynatma politikası için genellikle gereklidir)
-          const youtubeEmbedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=1&loop=1&playlist=${reel.id}&controls=0&mute=1&showinfo=0&modestbranding=1`;
+          // Sesi açmak için mute=1 parametresini kaldırdık.
+          const youtubeEmbedUrl = `https://www.youtube.com/embed/${reel.id}?autoplay=1&loop=1&playlist=${reel.id}&controls=0&showinfo=0&modestbranding=1`;
 
           return (
             <section
