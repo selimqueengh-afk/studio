@@ -13,19 +13,30 @@ export interface Reel {
     };
 }
 
-const mapApiResponse = (apiData: any): Reel[] => {
-    if (!apiData || !apiData.data || !apiData.data.itemList || !Array.isArray(apiData.data.itemList)) {
-        return [];
+const videoIds = [
+    "7306132438047116586",
+    "7012345678901234567",
+    "7034567890123456789",
+    "7056789012345678901",
+    "7098765432109876543",
+    "7023456789012345678"
+];
+
+
+const mapApiResponse = (apiData: any): Reel | null => {
+    if (!apiData || !apiData.data || !apiData.data.aweme_detail) {
+        return null;
     }
-    return apiData.data.itemList.map((item: any) => ({
-        id: item.id,
+    const item = apiData.data.aweme_detail;
+    return {
+        id: item.aweme_id,
         description: item.desc,
-        videoUrl: item.video.playAddr,
+        videoUrl: item.video.play_addr.url_list[0],
         author: {
-            nickname: item.author.uniqueId,
-            avatar: item.author.avatarThumb,
+            nickname: item.author.unique_id,
+            avatar: item.author.avatar_thumb.url_list[0],
         },
-    }));
+    };
 };
 
 export const fetchTiktokFeed = async (): Promise<Reel[]> => {
@@ -35,11 +46,6 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
     if (!apiKey || !apiHost) {
         throw new Error('RapidAPI anahtarı veya host bilgisi eksik. Lütfen .env.local dosyasını kontrol edin.');
     }
-    
-    const url = new URL('https://tiktok-api23.p.rapidapi.com/api/user/posts');
-    url.searchParams.append('secUid', 'MS4wLjABAAAAqB08cUbXaDWqbD6MCga2RbGTuhfO2EsHayBYx08NDrN7IE3jQuRDNNN6YwyfH6_6');
-    url.searchParams.append('count', '12');
-    url.searchParams.append('cursor', '0');
 
     const options = {
         method: 'GET',
@@ -50,23 +56,25 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
     };
 
     try {
-        const response = await fetch(url.toString(), options);
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
-            throw new Error(`API'den veri alınamadı: ${response.statusText}`);
-        }
-        
-        const responseText = await response.text();
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (e) {
-            console.error('Failed to parse JSON response from TikTok API:', responseText);
-            throw new Error('TikTok API\'sinden gelen yanıt JSON formatında değil.');
-        }
+        const promises = videoIds.map(videoId => {
+            const url = `https://tiktok-api23.p.rapidapi.com/api/post/detail?videoId=${videoId}`;
+            return fetch(url, options).then(response => {
+                 if (!response.ok) {
+                    console.error(`API Error for videoId ${videoId}: ${response.status} ${response.statusText}`);
+                    return null; // Return null for failed requests
+                }
+                return response.json();
+            });
+        });
 
-        return mapApiResponse(result);
+        const results = await Promise.all(promises);
+        
+        const reels = results
+            .map(result => mapApiResponse(result))
+            .filter((reel): reel is Reel => reel !== null); // Filter out any null results
+
+        return reels;
+
     } catch (error) {
         console.error('TikTok akışı alınırken bir hata oluştu:', error);
         return [];
