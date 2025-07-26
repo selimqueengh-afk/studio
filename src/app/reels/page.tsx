@@ -12,12 +12,11 @@ import { Loader2 } from 'lucide-react';
 async function ReelsFeed() {
     const feed = await fetchTiktokFeed();
 
-    // Since we now use a reliable static list, this check is less critical,
-    // but good practice to keep for future API integrations.
     if (!feed || feed.length === 0) {
         return (
-            <div className="flex h-screen w-full items-center justify-center text-white bg-black">
-                <p>Videolar şuan mevcut değil.</p>
+            <div className="flex h-screen w-full flex-col items-center justify-center text-white bg-black p-4 text-center">
+                <p className="text-lg font-semibold">Videolar yüklenemedi veya akış boş.</p>
+                <p className="text-sm text-white/70 mt-2">Lütfen daha sonra tekrar deneyin veya API yapılandırmanızı kontrol edin.</p>
             </div>
         );
     }
@@ -41,6 +40,8 @@ async function ReelsFeed() {
                             loop
                             playsInline
                             className="w-full h-full object-contain"
+                            // Using a poster image can improve initial load appearance
+                            poster={reel.author.avatar}
                         >
                             Tarayıcınız video etiketini desteklemiyor.
                         </video>
