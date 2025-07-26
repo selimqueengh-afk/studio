@@ -18,11 +18,16 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
   const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
-    if (isVisible && player) {
-      player.playVideo();
-    } else if (player) {
+    // This effect now only handles PAUSING the video when it's no longer visible.
+    // Playing is handled by the onReady event to prevent race conditions.
+    if (!isVisible && player) {
       // Small delay to prevent abrupt pause when scrolling
-      setTimeout(() => player.pauseVideo(), 150);
+      setTimeout(() => {
+        // Check if player is still valid and has the function before calling
+        if (player && typeof player.pauseVideo === 'function') {
+           player.pauseVideo()
+        }
+      }, 150);
     }
   }, [isVisible, player]);
 
@@ -33,6 +38,8 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
     } else {
       event.target.unMute();
     }
+    // Only play the video once it's ready and confirmed to be visible.
+    // This is the core fix for the race condition.
     if(isVisible) {
         event.target.playVideo();
     }
@@ -53,19 +60,19 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
     height: '100%',
     width: '100%',
     playerVars: {
-      autoplay: 1,
+      autoplay: 1, // Autoplay is handled by the onReady and isVisible logic
       controls: 0,
       modestbranding: 1,
       loop: 1,
       playlist: reel.id, // Required for loop
       playsinline: 1,
-      mute: 1, // Start muted to allow autoplay
+      mute: 1, // Start muted to allow autoplay in most browsers
     },
   };
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      {/* Only render the YouTube component when it's visible to save resources */}
+      {/* The YouTube component is only mounted when it becomes visible, saving resources */}
       {isVisible && (
          <YouTube
             videoId={reel.id}
@@ -81,8 +88,8 @@ function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
         </div>
 
         {/* Mute Icon */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            {!player || isMuted ? <VolumeX className="h-12 w-12 text-white/50" /> : <Volume2 className="h-12 w-12 text-white/50" />}
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            {isMuted && <VolumeX className="h-12 w-12 text-white/50" />}
         </div>
         
         {/* Bottom Gradient and Info */}
@@ -120,6 +127,9 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
+    // Make sure we have refs before setting up the observer
+    if(reelRefs.current.length === 0) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -142,7 +152,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
         if (ref) observer.unobserve(ref);
       });
     };
-  }, [shortsData]);
+  }, [shortsData, reelRefs]);
 
   if (!shortsData || shortsData.length === 0) {
     return (
