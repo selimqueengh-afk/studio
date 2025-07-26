@@ -16,43 +16,40 @@ import type { YouTubePlayer } from 'react-youtube';
 function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisible: boolean; isMuted: boolean; toggleMute: () => void; }) {
   const [player, setPlayer] = useState<YouTubePlayer | null>(null);
 
-  // This effect now only handles PAUSING the video when it's no longer visible.
-  // Playing is handled by the onReady event to prevent race conditions.
   useEffect(() => {
-    if (!isVisible && player) {
-      // Small delay to prevent abrupt pause when scrolling
-      setTimeout(() => {
-        // Check if player is still valid and has the function before calling
-        if (player && typeof player.pauseVideo === 'function') {
-           player.pauseVideo()
-        }
-      }, 150);
+    // Play or pause the video only when isVisible changes and player is ready
+    if (!player) return;
+
+    if (isVisible) {
+      player.playVideo();
+    } else {
+      player.pauseVideo();
     }
   }, [isVisible, player]);
   
-  // This effect synchronizes the player's mute state with the global mute state.
   useEffect(() => {
-    if (player) {
-      if (isMuted) {
-        player.mute();
-      } else {
-        player.unMute();
-      }
+    // Control mute state only when isMuted changes and player is ready
+    if (!player) return;
+
+    if (isMuted) {
+      player.mute();
+    } else {
+      player.unMute();
     }
-  }, [player, isMuted]);
+  }, [isMuted, player]);
 
 
   const onReady = (event: { target: YouTubePlayer }) => {
-    setPlayer(event.target);
+    const newPlayer = event.target;
+    setPlayer(newPlayer);
+    // Sync mute state and play video when player is ready and visible
     if (isMuted) {
-      event.target.mute();
+        newPlayer.mute();
     } else {
-      event.target.unMute();
+        newPlayer.unMute();
     }
-    // Only play the video once it's ready and confirmed to be visible.
-    // This is the core fix for the race condition.
-    if(isVisible) {
-        event.target.playVideo();
+    if (isVisible) {
+        newPlayer.playVideo();
     }
   };
 
@@ -60,35 +57,33 @@ function ReelItem({ reel, isVisible, isMuted, toggleMute }: { reel: Reel; isVisi
     height: '100%',
     width: '100%',
     playerVars: {
-      autoplay: 1, // Autoplay is handled by the onReady and isVisible logic
+      autoplay: 0, // We control autoplay manually via onReady and isVisible
       controls: 0,
       modestbranding: 1,
       loop: 1,
       playlist: reel.id, // Required for loop
       playsinline: 1,
-      mute: 1, // Start muted to allow autoplay in most browsers
+      mute: 1, // Start muted, we will unmute if necessary
     },
   };
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
       {/* The YouTube component is only mounted when it becomes visible, saving resources */}
-      {isVisible && (
-         <YouTube
-            videoId={reel.id}
-            opts={opts}
-            onReady={onReady}
-            className="w-full h-full object-contain absolute inset-0"
-         />
-      )}
+      <YouTube
+          videoId={reel.id}
+          opts={opts}
+          onReady={onReady}
+          className="w-full h-full object-contain absolute inset-0"
+      />
       <div className="absolute top-0 left-0 right-0 bottom-0 z-10 flex flex-col justify-between" onClick={toggleMute}>
         {/* Top Gradient and Header */}
         <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
             {/* Header content can go here if needed */}
         </div>
-
+        
         {/* Mute Icon */}
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
             {isMuted ? <VolumeX className="h-12 w-12 text-white/50" /> : <Volume2 className="h-12 w-12 text-white/50" />}
         </div>
         
@@ -153,7 +148,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
         if (ref) observer.unobserve(ref);
       });
     };
-  }, [shortsData, reelRefs]);
+  }, [shortsData]); // Removed reelRefs from dependency array to prevent re-observation on re-renders
 
   if (!shortsData || shortsData.length === 0) {
     return (
@@ -170,7 +165,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   }
 
   return (
-    <div className="relative h-screen w-full bg-black overflow-hidden">
+    <div className="relative h-screen w-full bg-black overflow-hidden group">
       <div className="absolute top-4 left-4 z-20">
         <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
           <Link href="/chat">
