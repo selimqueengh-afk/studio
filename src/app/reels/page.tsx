@@ -6,8 +6,6 @@ import { ArrowLeft, Send, VideoOff } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
-import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
 
 async function ReelsFeed() {
     const feed = await fetchTiktokFeed();
@@ -45,6 +43,7 @@ async function ReelsFeed() {
                         <video
                             src={reel.videoUrl}
                             controls
+                            autoPlay
                             loop
                             playsInline
                             className="w-full h-full object-contain"
@@ -79,14 +78,5 @@ async function ReelsFeed() {
 }
 
 export default function ReelsPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-black text-white">
-                <Loader2 className="h-12 w-12 animate-spin" />
-                <p>Videolar Yükleniyor...</p>
-            </div>
-        }>
-            <ReelsFeed />
-        </Suspense>
-    );
+    return <ReelsFeed />;
 }
