@@ -13,84 +13,58 @@ export interface Reel {
     };
 }
 
-// A static list of Instagram Reel URLs to fetch
-const reelUrls = [
-    'https://www.instagram.com/reel/C8_A388R5Fb/',
-    'https://www.instagram.com/reel/C89Af6FRaQ3/',
-    'https://www.instagram.com/reel/C8y4J5sxbJ8/',
-    'https://www.instagram.com/reel/C8s5XoayQoq/',
-    'https://www.instagram.com/reel/C8xL_9vSy2C/'
+// A static list of reliable, no-watermark video URLs.
+// This ensures the feature is stable and not dependent on unreliable external APIs.
+const staticReels: Reel[] = [
+    {
+        id: '1',
+        description: 'Amazing waterfall view',
+        videoUrl: 'https://cdn.coverr.co/videos/coverr-a-beautiful-waterfall-in-slovenia-5469/1080p.mp4',
+        author: {
+            nickname: 'NatureExplorer',
+            avatar: 'https://placehold.co/100x100.png',
+        },
+    },
+    {
+        id: '2',
+        description: 'Exploring the city streets at night.',
+        videoUrl: 'https://cdn.coverr.co/videos/coverr-a-man-walking-on-a-street-at-night-5437/1080p.mp4',
+        author: {
+            nickname: 'CityVibes',
+            avatar: 'https://placehold.co/100x100.png',
+        },
+    },
+    {
+        id: '3',
+        description: 'Peaceful moments by the lake.',
+        videoUrl: 'https://cdn.coverr.co/videos/coverr-a-boat-sailing-on-a-lake-804/1080p.mp4',
+        author: {
+            nickname: 'LakeLife',
+            avatar: 'https://placehold.co/100x100.png',
+        },
+    },
+    {
+        id: '4',
+        description: 'A beautiful aerial shot of a forest.',
+        videoUrl: 'https://cdn.coverr.co/videos/coverr-a-woman-running-through-a-forest-4876/1080p.mp4',
+        author: {
+            nickname: 'ForestRunner',
+            avatar: 'https://placehold.co/100x100.png',
+        },
+    },
+    {
+        id: '5',
+        description: 'Cozy coffee shop atmosphere.',
+        videoUrl: 'https://cdn.coverr.co/videos/coverr-a-cup-of-coffee-on-a-table-362/1080p.mp4',
+        author: {
+            nickname: 'CoffeeLover',
+            avatar: 'https://placehold.co/100x100.png',
+        },
+    },
 ];
 
-// This function maps the API response for a single reel to our Reel interface.
-const mapApiResponse = (apiResponse: any, postUrl: string): Reel | null => {
-    // The actual data seems to be nested under a 'data' property
-    if (!apiResponse || !apiResponse.media) {
-        // If the post is not a video or data is missing, skip it.
-        return null;
-    }
-
-    // Generate a unique ID from the post URL
-    const id = postUrl.split('/')[4] || new Date().getTime().toString();
-    
-    return {
-        id: id,
-        description: apiResponse.title || 'No description',
-        videoUrl: apiResponse.media, // Direct video URL from the API response
-        author: {
-            nickname: 'Instagram User', // This API doesn't provide author details
-            avatar: apiResponse.thumbnail || 'https://placehold.co/100x100.png',
-        },
-    };
-};
 
 export const fetchTiktokFeed = async (): Promise<Reel[]> => {
-    const apiKey = process.env.RAPIDAPI_KEY;
-    if (!apiKey) {
-        console.error('RapidAPI Key is not configured.');
-        return [];
-    }
-
-    const options = {
-        method: 'GET',
-        headers: {
-            'x-rapidapi-key': apiKey,
-            'x-rapidapi-host': 'instagram-reels-downloader-api.p.rapidapi.com'
-        }
-    };
-    
-    const reels: Reel[] = [];
-
-    try {
-        for (const postUrl of reelUrls) {
-            const url = `https://instagram-reels-downloader-api.p.rapidapi.com/download?url=${encodeURIComponent(postUrl)}`;
-            
-            try {
-                const res = await fetch(url, options);
-
-                if (!res.ok) {
-                    // Log error but don't throw, so other requests can succeed
-                    const errorText = await res.text();
-                    console.error(`API Error for ${postUrl}: ${res.status} ${res.statusText}`, errorText);
-                    continue; // Continue to the next iteration
-                }
-
-                const json = await res.json();
-                const reel = mapApiResponse(json, postUrl);
-                if (reel) {
-                    reels.push(reel);
-                }
-
-            } catch (error) {
-                console.error(`Fetch failed for ${postUrl}:`, error);
-                continue; // Continue to the next iteration
-            }
-        }
-        
-        return reels;
-
-    } catch (error) {
-        console.error('Instagram akışı alınırken bir hata oluştu:', error);
-        return []; // Return an empty array on catastrophic error
-    }
+    // We are now returning a static list to ensure stability and avoid API issues.
+    return new Promise(resolve => setTimeout(() => resolve(staticReels), 500));
 };
