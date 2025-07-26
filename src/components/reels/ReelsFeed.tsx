@@ -23,7 +23,7 @@ function ReelItem({
 }) {
   const isMobile = useIsMobile();
   // Construct the URL to enable autoplay and ensure controls are visible.
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=0&controls=${isMobile ? 0 : 1}&modestbranding=1&loop=1&playlist=${reel.id}`;
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=1&controls=${isMobile ? 0 : 1}&modestbranding=1&loop=1&playlist=${reel.id}`;
   
   // Render placeholder if not visible or preloading
   if (!isVisible && !isPreloading) {
@@ -37,7 +37,7 @@ function ReelItem({
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
        <iframe
-          src={isVisible ? videoSrc : ''}
+          src={videoSrc}
           title={reel.description}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
