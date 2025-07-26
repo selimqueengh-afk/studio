@@ -3,8 +3,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import YouTube from 'react-youtube';
-import type { YouTubePlayer } from 'react-youtube';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,51 +13,32 @@ import { type Reel } from '@/lib/reels';
 function ReelItem({
   reel,
   isVisible,
+  isPreloading,
 }: {
   reel: Reel;
   isVisible: boolean;
+  isPreloading: boolean;
 }) {
-  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
+  const shouldRender = isVisible || isPreloading;
 
-  const onReady = (event: { target: YouTubePlayer }) => {
-    setPlayer(event.target);
-  };
-  
-  useEffect(() => {
-    // Player hazır değilse hiçbir şey yapma. Bu, hataları önler.
-    if (!player) {
-      return;
-    }
-
-    if (isVisible) {
-      player.setVolume(50); // Sesi %50 yap
-      player.playVideo();
-    } else {
-      player.pauseVideo();
-    }
-  }, [isVisible, player]);
-
-  const opts = {
-    height: '100%',
-    width: '100%',
-    playerVars: {
-      autoplay: 0, // Oynatmayı useEffect ile kontrol edeceğiz
-      controls: 1,
-      modestbranding: 1,
-      loop: 1,
-      playlist: reel.id, // for looping
-    },
-  };
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      <YouTube
-        videoId={reel.id}
-        opts={opts}
-        onReady={onReady}
-        className="absolute inset-0 w-full h-full"
-        iframeClassName="w-full h-full"
-      />
+      {shouldRender && (
+        <iframe
+          src={videoSrc}
+          title={reel.description}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full object-contain"
+          style={{
+            opacity: isVisible ? 1 : 0,
+            pointerEvents: isVisible ? 'auto' : 'none',
+          }}
+        ></iframe>
+      )}
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
         <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
         </div>
@@ -93,6 +72,7 @@ function ReelItem({
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const [visibleReelId, setVisibleReelId] = useState<string | null>(null);
+  const [preloadReelId, setPreloadReelId] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -100,10 +80,17 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const reelId = entry.target.getAttribute('data-reel-id');
+        const reelIndex = parseInt(entry.target.getAttribute('data-reel-index') || '0', 10);
         setVisibleReelId(reelId);
+        
+        if (reelIndex + 1 < shortsData.length) {
+            setPreloadReelId(shortsData[reelIndex + 1].id);
+        } else {
+            setPreloadReelId(null);
+        }
       }
     });
-  }, []);
+  }, [shortsData]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -111,6 +98,9 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
 
     if (shortsData.length > 0 && !visibleReelId) {
         setVisibleReelId(shortsData[0].id);
+        if (shortsData.length > 1) {
+            setPreloadReelId(shortsData[1].id);
+        }
     }
 
     observer.current = new IntersectionObserver(handleIntersection, {
@@ -162,6 +152,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             <ReelItem
               reel={reel}
               isVisible={visibleReelId === reel.id}
+              isPreloading={preloadReelId === reel.id}
             />
           </div>
         ))}
