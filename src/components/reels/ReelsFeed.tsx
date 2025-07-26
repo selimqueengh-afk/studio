@@ -8,12 +8,13 @@ import { ArrowLeft, Send, Volume2, VolumeX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
-import { type Reel } from '@/lib/youtube';
+import { type Reel } from '@/lib/reels';
 import YouTube from 'react-youtube';
 import type { YouTubePlayer } from 'react-youtube';
 
 
-function ReelItem({ reel, isVisible, player, setPlayer }: { reel: Reel; isVisible: boolean; player: YouTubePlayer | null; setPlayer: (player: YouTubePlayer | null) => void; }) {
+function ReelItem({ reel, isVisible }: { reel: Reel; isVisible: boolean; }) {
+  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
   const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
@@ -32,7 +33,6 @@ function ReelItem({ reel, isVisible, player, setPlayer }: { reel: Reel; isVisibl
     } else {
       event.target.unMute();
     }
-    // if the video becomes visible before it's ready, play it now.
     if(isVisible) {
         event.target.playVideo();
     }
@@ -65,6 +65,7 @@ function ReelItem({ reel, isVisible, player, setPlayer }: { reel: Reel; isVisibl
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
+      {/* Only render the YouTube component when it's visible to save resources */}
       {isVisible && (
          <YouTube
             videoId={reel.id}
@@ -115,15 +116,8 @@ function ReelItem({ reel, isVisible, player, setPlayer }: { reel: Reel; isVisibl
 
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
-  const [player, setPlayer] = useState<YouTubePlayer | null>(null);
   const [visibleReelIndex, setVisibleReelIndex] = useState(0);
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
-
-  useEffect(() => {
-    // Reset player when the visible reel changes to ensure onReady fires again
-    setPlayer(null);
-  }, [visibleReelIndex]);
-
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -185,8 +179,6 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             <ReelItem
               reel={reel}
               isVisible={index === visibleReelIndex}
-              player={player}
-              setPlayer={setPlayer}
             />
           </div>
         ))}
