@@ -57,7 +57,16 @@ export const fetchTiktokFeed = async (): Promise<Reel[]> => {
             console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
             throw new Error(`API'den veri alınamadı: ${response.statusText}`);
         }
-        const result = await response.json();
+        
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse JSON response from TikTok API:', responseText);
+            throw new Error('TikTok API\'sinden gelen yanıt JSON formatında değil.');
+        }
+
         return mapApiResponse(result);
     } catch (error) {
         console.error('TikTok akışı alınırken bir hata oluştu:', error);
