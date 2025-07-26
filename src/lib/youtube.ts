@@ -7,7 +7,7 @@ import { type Reel } from './reels';
 // Kotanın harcanmaması için, Next.js'in revalidate özelliği kullanılarak
 // API istekleri sunucu tarafında saatte bir kez yapılacak şekilde ayarlanmıştır.
 
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const YOUTUBE_API_KEY = "AIzaSyC07W2GblkDf1aL9S2pSF4UVFQrSbliphY"; // Hardcoded API key to fix the environment variable issue.
 const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3';
 
 // Örnek olarak MrBeast kanalının ID'si
