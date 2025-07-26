@@ -5,13 +5,15 @@ import { ArrowLeft, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
+import { type Reel } from '@/lib/reels';
 
 // We will embed the YouTube Short directly using an iframe.
 const YOUTUBE_SHORT_ID = 'ctQQ8z7nd0k';
-const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_SHORT_ID}?autoplay=1&mute=1&loop=1&playlist=${YOUTUBE_SHORT_ID}&controls=0&showinfo=0&modestbranding=1`;
+// Removed mute=1 to enable sound. Autoplay might be blocked by the browser.
+const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_SHORT_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_SHORT_ID}&controls=0&showinfo=0&modestbranding=1`;
 
 // Dummy reel data for the ShareReelSheet component
-const testReel = {
+const testReel: Reel = {
     id: YOUTUBE_SHORT_ID,
     videoUrl: `https://www.youtube.com/shorts/${YOUTUBE_SHORT_ID}`,
     description: 'A great short video!',
