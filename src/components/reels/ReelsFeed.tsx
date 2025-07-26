@@ -4,12 +4,11 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
-import { cn } from '@/lib/utils';
 
 function ReelItem({
   reel,
@@ -18,24 +17,22 @@ function ReelItem({
   reel: Reel;
   isVisible: boolean;
 }) {
-  // Add mute=1 to ensure autoplay works on most browsers.
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${reel.id}`;
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&loop=1&playlist=${reel.id}&controls=0`;
 
-  // Don't render iframe if not visible to save resources and prevent background playback
   if (!isVisible) {
-    return null;
+    return <div className="h-full w-full bg-black" />;
   }
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      <iframe
-        src={videoSrc}
-        title={reel.description}
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        className="w-full h-full absolute inset-0"
-      ></iframe>
+       <iframe
+          src={videoSrc}
+          title={reel.description}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full absolute inset-0"
+        ></iframe>
 
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
         {/* Top Gradient */}
@@ -117,7 +114,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   }
 
   return (
-    <div className="relative h-screen w-full bg-black group">
+    <div className="relative h-screen w-full bg-black snap-y snap-mandatory overflow-y-scroll">
       <div className="absolute top-4 left-4 z-20">
         <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
           <Link href="/chat">
@@ -126,20 +123,18 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
         </Button>
       </div>
 
-      <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
-        {shortsData.map((reel) => (
-          <div
-            key={reel.id}
-            data-reel-id={reel.id}
-            className="reel-container h-full w-full"
-          >
-            <ReelItem
-              reel={reel}
-              isVisible={visibleReelId === reel.id}
-            />
-          </div>
-        ))}
-      </div>
+      {shortsData.map((reel) => (
+        <div
+          key={reel.id}
+          data-reel-id={reel.id}
+          className="reel-container h-full w-full snap-start"
+        >
+          <ReelItem
+            reel={reel}
+            isVisible={visibleReelId === reel.id}
+          />
+        </div>
+      ))}
     </div>
   );
 }
