@@ -113,9 +113,7 @@ function ReelItem({ reel, isVisible, player, setPlayer }: { reel: Reel; isVisibl
 }
 
 
-async function ReelsFeed() {
-  // Verileri sunucu tarafında çekiyoruz, Next.js önbelleklemesi API kotasını korur
-  const shortsData = await fetchYouTubeShorts();
+function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const [player, setPlayer] = useState<YouTubePlayer | null>(null);
   const [visibleReelIndex, setVisibleReelIndex] = useState(0);
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
@@ -196,16 +194,13 @@ async function ReelsFeed() {
   );
 }
 
-function ReelsPage() {
+// This is now the Server Component Wrapper
+export default async function ReelsPage() {
+    // Data is fetched on the server
+    const shortsData = await fetchYouTubeShorts();
+
+    // The Client Component is rendered with the fetched data
     return (
-        <Suspense fallback={
-            <div className="flex h-screen w-full items-center justify-center bg-black">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
-            </div>
-        }>
-            <ReelsFeed />
-        </Suspense>
+       <ReelsFeed shortsData={shortsData} />
     );
 }
-
-export default ReelsPage;
