@@ -43,13 +43,13 @@ export async function fetchYouTubeShorts(): Promise<Reel[]> {
   const randomQuery = SEARCH_QUERIES[Math.floor(Math.random() * SEARCH_QUERIES.length)];
   const encodedQuery = encodeURIComponent(`${randomQuery}`);
 
-  const API_URL = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&videoDuration=short&q=${encodedQuery}&key=${YOUTUBE_API_KEY}`;
+  // Fetch fewer results per call to mix categories more often
+  const API_URL = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&videoDuration=short&q=${encodedQuery}&key=${YOUTUBE_API_KEY}`;
 
   try {
     const response = await fetch(API_URL, {
-      // Hourly caching in Next.js App Router.
-      // This makes API quota usage very efficient.
-      next: { revalidate: 3600 },
+      // Use no-store to prevent caching on the server, ensuring fresh results for each call
+      cache: 'no-store',
     });
 
     if (!response.ok) {

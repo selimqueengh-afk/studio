@@ -4,11 +4,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import ShareReelSheet from '@/components/reels/ShareReelSheet';
 import { type Reel } from '@/lib/reels';
+import { fetchYouTubeShorts } from '@/lib/youtube';
 
 function ReelItem({
   reel,
@@ -19,13 +20,15 @@ function ReelItem({
   isVisible: boolean;
   isPreloading: boolean;
 }) {
-  const shouldRender = isVisible || isPreloading;
+  const shouldRenderIframe = isVisible || isPreloading;
 
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
+  const videoSrc = isVisible
+    ? `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}&mute=1`
+    : `https://www.youtube.com/embed/${reel.id}?autoplay=0&controls=1&modestbranding=1&loop=1&playlist=${reel.id}&mute=1`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
-      {shouldRender && (
+      {shouldRenderIframe && (
         <iframe
           src={videoSrc}
           title={reel.description}
@@ -34,7 +37,6 @@ function ReelItem({
           allowFullScreen
           className="w-full h-full object-contain"
           style={{
-            opacity: isVisible ? 1 : 0,
             pointerEvents: isVisible ? 'auto' : 'none',
           }}
         ></iframe>
@@ -71,35 +73,49 @@ function ReelItem({
 }
 
 export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
+  const [reels, setReels] = useState<Reel[]>(shortsData);
   const [visibleReelId, setVisibleReelId] = useState<string | null>(null);
   const [preloadReelId, setPreloadReelId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastReelRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMoreReels = useCallback(async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    const newReels = await fetchYouTubeShorts();
+    setReels(prevReels => [...prevReels, ...newReels]);
+    setIsLoading(false);
+  }, [isLoading]);
 
   const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
     entries.forEach(entry => {
+      const reelId = entry.target.getAttribute('data-reel-id');
+      const reelIndex = parseInt(entry.target.getAttribute('data-reel-index') || '0', 10);
+
       if (entry.isIntersecting) {
-        const reelId = entry.target.getAttribute('data-reel-id');
-        const reelIndex = parseInt(entry.target.getAttribute('data-reel-index') || '0', 10);
         setVisibleReelId(reelId);
-        
-        if (reelIndex + 1 < shortsData.length) {
-            setPreloadReelId(shortsData[reelIndex + 1].id);
+
+        if (reelIndex + 1 < reels.length) {
+            setPreloadReelId(reels[reelIndex + 1].id);
         } else {
             setPreloadReelId(null);
+            // Load more if we are at the last video
+            loadMoreReels();
         }
       }
     });
-  }, [shortsData]);
-
+  }, [reels, loadMoreReels]);
+  
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    if (shortsData.length > 0 && !visibleReelId) {
-        setVisibleReelId(shortsData[0].id);
-        if (shortsData.length > 1) {
-            setPreloadReelId(shortsData[1].id);
+    if (reels.length > 0 && !visibleReelId) {
+        setVisibleReelId(reels[0].id);
+        if (reels.length > 1) {
+            setPreloadReelId(reels[1].id);
         }
     }
 
@@ -115,9 +131,10 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     return () => {
       reelElements.forEach(el => observer.current?.unobserve(el));
     };
-  }, [handleIntersection, shortsData, visibleReelId]);
+  }, [handleIntersection, reels, visibleReelId]);
 
-  if (!shortsData || shortsData.length === 0) {
+
+  if (!reels || reels.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-black text-white p-4">
         <h2 className="text-2xl font-bold mb-4">Videolar Yüklenemedi</h2>
@@ -142,12 +159,13 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
       </div>
       
       <div ref={containerRef} className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
-        {shortsData.map((reel, index) => (
+        {reels.map((reel, index) => (
           <div
-            key={reel.id}
+            key={`${reel.id}-${index}`} // Use index to ensure unique keys when reels might have same id
             data-reel-id={reel.id}
             data-reel-index={index}
             className="reel-container h-full w-full snap-start flex-shrink-0"
+             ref={index === reels.length - 1 ? lastReelRef : null}
           >
             <ReelItem
               reel={reel}
@@ -156,6 +174,11 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             />
           </div>
         ))}
+        {isLoading && (
+            <div className="h-full w-full snap-start flex-shrink-0 flex justify-center items-center">
+                <Loader2 className="h-10 w-10 animate-spin text-white"/>
+            </div>
+        )}
       </div>
     </div>
   );
