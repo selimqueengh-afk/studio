@@ -20,16 +20,11 @@ interface YouTubeVideo {
 
 // Search terms for diverse and interesting content
 const SEARCH_QUERIES = [
-  'satisfying cleaning #shorts',
-  'funny cats #shorts',
-  'life hacks #shorts',
-  '3d animation #shorts',
-  'DIY crafts #shorts',
-  'amazing science experiments #shorts',
-  'parkour highlights #shorts',
-  'minecraft build timelapse #shorts',
-  'asmr #shorts',
-  'daily dose of internet'
+  'anime edit #shorts',
+  'gigachad edit #shorts',
+  'türk gizem hikayeleri #shorts',
+  'roblox egor edit #shorts',
+  'roblox tutorial #shorts'
 ];
 
 // Function to fetch Shorts videos from YouTube Data API.

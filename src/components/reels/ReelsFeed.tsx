@@ -21,7 +21,7 @@ function ReelItem({
 }) {
   const shouldRender = isVisible || isPreloading;
 
-  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&mute=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
