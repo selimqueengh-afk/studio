@@ -20,11 +20,9 @@ interface YouTubeVideo {
 
 // Search terms for diverse and interesting content
 const SEARCH_QUERIES = [
-  'anime edit #shorts',
-  'gigachad edit #shorts',
-  'türk gizem hikayeleri #shorts',
-  'roblox egor edit #shorts',
-  'roblox tutorial #shorts'
+  'üst seviye anime edit #shorts',
+  'gigachad meme #shorts',
+  'roblox egor #shorts'
 ];
 
 // Function to fetch Shorts videos from YouTube Data API.

@@ -22,9 +22,9 @@ function ReelItem({
 }) {
   const shouldRenderIframe = isVisible || isPreloading;
 
-  const videoSrc = isVisible
-    ? `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}&mute=1`
-    : `https://www.youtube.com/embed/${reel.id}?autoplay=0&controls=1&modestbranding=1&loop=1&playlist=${reel.id}&mute=1`;
+  // Use mute=1 to ensure autoplay works on most browsers.
+  // The user can unmute manually via the YouTube player controls.
+  const videoSrc = `https://www.youtube.com/embed/${reel.id}?autoplay=1&controls=1&modestbranding=1&loop=1&playlist=${reel.id}&mute=1`;
 
   return (
     <section className="relative h-full w-full snap-start flex items-center justify-center bg-black">
@@ -36,6 +36,7 @@ function ReelItem({
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           className="w-full h-full object-contain"
+          // Disable pointer events for preloading iframes
           style={{
             pointerEvents: isVisible ? 'auto' : 'none',
           }}
@@ -79,13 +80,17 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastReelRef = useRef<HTMLDivElement | null>(null);
 
   const loadMoreReels = useCallback(async () => {
     if (isLoading) return;
     setIsLoading(true);
     const newReels = await fetchYouTubeShorts();
-    setReels(prevReels => [...prevReels, ...newReels]);
+    // Add new reels, filtering out any potential duplicates from the API
+    setReels(prevReels => {
+        const existingIds = new Set(prevReels.map(r => r.id));
+        const uniqueNewReels = newReels.filter(r => !existingIds.has(r.id));
+        return [...prevReels, ...uniqueNewReels];
+    });
     setIsLoading(false);
   }, [isLoading]);
 
@@ -97,11 +102,15 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
       if (entry.isIntersecting) {
         setVisibleReelId(reelId);
 
+        // Preload the next video
         if (reelIndex + 1 < reels.length) {
             setPreloadReelId(reels[reelIndex + 1].id);
         } else {
             setPreloadReelId(null);
-            // Load more if we are at the last video
+        }
+        
+        // Load more when we are near the end (e.g., 3 videos away from the end)
+        if (reelIndex >= reels.length - 3) {
             loadMoreReels();
         }
       }
@@ -112,6 +121,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     const container = containerRef.current;
     if (!container) return;
 
+    // Set initial visible and preload states
     if (reels.length > 0 && !visibleReelId) {
         setVisibleReelId(reels[0].id);
         if (reels.length > 1) {
@@ -122,6 +132,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
     observer.current = new IntersectionObserver(handleIntersection, {
       root: container,
       rootMargin: '0px',
+      // Start loading the next video when it's 50% visible, making transitions smoother
       threshold: 0.8,
     });
 
@@ -130,6 +141,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
 
     return () => {
       reelElements.forEach(el => observer.current?.unobserve(el));
+      observer.current?.disconnect();
     };
   }, [handleIntersection, reels, visibleReelId]);
 
@@ -165,7 +177,6 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
             data-reel-id={reel.id}
             data-reel-index={index}
             className="reel-container h-full w-full snap-start flex-shrink-0"
-             ref={index === reels.length - 1 ? lastReelRef : null}
           >
             <ReelItem
               reel={reel}
@@ -176,7 +187,10 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
         ))}
         {isLoading && (
             <div className="h-full w-full snap-start flex-shrink-0 flex justify-center items-center">
-                <Loader2 className="h-10 w-10 animate-spin text-white"/>
+                <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-10 w-10 animate-spin text-white"/>
+                    <p className="text-white/80 text-sm">Yeni videolar yükleniyor...</p>
+                </div>
             </div>
         )}
       </div>
