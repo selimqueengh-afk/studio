@@ -22,7 +22,9 @@ interface YouTubeVideo {
 const SEARCH_QUERIES = [
   'üst seviye anime edit #shorts',
   'gigachad meme #shorts',
-  'roblox egor #shorts'
+  'roblox egor #shorts',
+  'naruto edit #shorts',
+  'goku edit #shorts'
 ];
 
 // Function to fetch Shorts videos from YouTube Data API.
