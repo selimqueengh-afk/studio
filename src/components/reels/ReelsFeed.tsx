@@ -42,12 +42,25 @@ function ReelItem({
           }}
         ></iframe>
       )}
-      <div className="absolute top-0 left-0 right-0 z-10 flex flex-col justify-between pointer-events-none h-full">
-        <div className="p-4 bg-gradient-to-b from-black/60 to-transparent text-white">
+      <div className="absolute inset-0 z-10 flex flex-col justify-between pointer-events-none">
+        {/* Top Gradient */}
+        <div className="pt-4 px-4 bg-gradient-to-b from-black/60 to-transparent" />
+        
+        {/* Middle section for button */}
+        <div className="absolute top-1/2 right-4 -translate-y-1/2 flex flex-col items-center gap-4 pointer-events-auto">
+            <ShareReelSheet reel={reel}>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-12 w-12">
+                  <Send className="h-7 w-7" />
+                  <span className="sr-only">Paylaş</span>
+                </Button>
+            </ShareReelSheet>
         </div>
-        <div className="p-4 flex flex-col justify-end h-full bg-gradient-to-t from-black/60 to-transparent text-white">
+
+
+        {/* Bottom section for info */}
+        <div className="p-4 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent text-white">
           <div className="flex items-end">
-            <div className="flex-1 max-w-[calc(100%-60px)] flex items-center gap-2">
+            <div className="flex-1 max-w-[calc(100%-80px)] flex items-center gap-2">
               <Avatar className="h-10 w-10 border-2 border-white/50">
                 <AvatarImage src={reel.author.avatar} />
                 <AvatarFallback>{getInitials(reel.author.nickname)}</AvatarFallback>
@@ -56,15 +69,6 @@ function ReelItem({
                 <h3 className="font-bold truncate">@{reel.author.nickname}</h3>
                 <p className="text-sm line-clamp-2">{reel.description}</p>
               </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-4 pointer-events-auto mb-4">
-              <ShareReelSheet reel={reel}>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white h-12 w-12">
-                  <Send className="h-7 w-7" />
-                  <span className="sr-only">Paylaş</span>
-                </Button>
-              </ShareReelSheet>
             </div>
           </div>
         </div>
@@ -133,7 +137,7 @@ export default function ReelsFeed({ shortsData }: { shortsData: Reel[] }) {
       root: container,
       rootMargin: '0px',
       // Start loading the next video when it's 50% visible, making transitions smoother
-      threshold: 0.8,
+      threshold: 0.5,
     });
 
     const reelElements = container.querySelectorAll('.reel-container');
